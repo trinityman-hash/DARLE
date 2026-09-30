@@ -2,7 +2,7 @@
 import { D, W, hv, xor, pc, Counters } from './hdc.ts';
 
 export interface Fact { s: string; rel: string; o: string; neg: boolean }
-export interface Reply { text: string; verdict?: 'supported' | 'contradicted' | 'unknown'; proof: string[]; touched?: string }
+export interface Reply { text: string; verdict?: 'supported' | 'contradicted' | 'unknown'; proof: string[]; touched?: string; miss?: true }
 interface Verb { key: string; third: string; base: string; fn?: boolean }
 const VERBS: Verb[] = [
   { key: 'works for', third: 'works for', base: 'work for', fn: true }, { key: 'lives in', third: 'lives in', base: 'live in', fn: true },
@@ -11,6 +11,7 @@ const VERBS: Verb[] = [
   { key: 'knows', third: 'knows', base: 'know' }, { key: 'has', third: 'has', base: 'have' }, { key: 'eats', third: 'eats', base: 'eat' },
 ];
 const FUNC = new Set([...VERBS.filter(v => v.fn).map(v => v.key), 'capital of']);
+export const RELS = [...VERBS.map(v => v.key), 'is a', 'is', 'located in', 'part of', 'capital of'];
 const TRANS = new Set(['is a', 'located in', 'part of']);
 const MAX_BANKS = 5000, IDLE_TURNS = 500, Z_MIN = 5, MAX_DEPTH = 6;
 
@@ -25,8 +26,10 @@ const norm = (t: string) => t.toLowerCase().replace(/doesn't/g, 'does not').repl
 const ent = (t: string) => t.replace(/^(the|a|an) /, '').trim();
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 const art = (w: string) => (/^[aeiou]/.test(w) ? 'an' : 'a');
+const PRON = /\b(i|me|my|we|our|you|your|it|this|that|they|he|she)\b/;
 const mk = (s: string, rel: string, o: string, neg: boolean): Fact | null => {
-  s = ent(s); o = ent(o); return s && o && s.length < 40 && o.length < 40 ? { s, rel, o, neg } : null;
+  s = ent(s); o = ent(o);
+  return s && o && s.length < 40 && o.length < 40 && s.split(' ').length <= 4 && o.split(' ').length <= 4 && !PRON.test(s) && !PRON.test(o) ? { s, rel, o, neg } : null;
 };
 
 function parseFact(t: string): Fact | null {
@@ -106,7 +109,7 @@ export class Darle {
     const z = b.c.corr(xor(hv('r:' + key), hv('o:' + o))) / (b.scale * Math.sqrt(D * Math.max(1, b.n - 1)));
     return z >= Z_MIN ? { name: o, z } : null;
   }
-  private line = (s: string, key: string, r: Read) => `${s} —${key}→ ${r.name}  (${r.z.toFixed(1)}σ)`;
+  private line = (s: string, key: string, r: Read) => `${s} \u2014${key}\u2192 ${r.name}  (${r.z.toFixed(1)}\u03c3)`;
   private chain(s: string, key: string, goal: string): string[] | null {
     const seen = new Set([s]); let q: [string, string[]][] = [[s, []]];
     for (let d = 0; d < MAX_DEPTH && q.length; d++) {
@@ -156,7 +159,7 @@ export class Darle {
     let fix = false; if (t.startsWith('actually ')) { fix = true; t = t.slice(9); }
     if (/\?\s*$/.test(raw.trim()) || /^(what|who|whom|where|is|are|does|do) /.test(t)) return this.ask(t);
     const f = parseFact(t);
-    if (!f) return { proof: [], text: 'I could not parse that. I understand: "X is a Y", "X is in Y", "X is the capital of Y", "X is adjective", and X works for / lives in / reports to / manages / owns / likes / loves / knows / has / eats Y.' };
+    if (!f) return { miss: true, proof: [], text: 'I could not parse that. I understand: "X is a Y", "X is in Y", "X is the capital of Y", "X is adjective", and X works for / lives in / reports to / manages / owns / likes / loves / knows / has / eats Y.' };
     const r = this.verify(f);
     if (r.v === 'supported') return { text: `I already hold that: ${realize(f)}.`, verdict: 'supported', proof: r.proof, touched: f.s };
     if (r.v === 'contradicted' && !fix) return { text: `That conflicts with what I hold: ${realize(r.clash![0])}. Say "Actually, ${realize(f).toLowerCase()}" to replace it.`, verdict: 'contradicted', proof: r.proof, touched: f.s };
@@ -164,17 +167,17 @@ export class Darle {
     this.learn(f); return { text: `${fix ? 'Corrected' : 'Noted'}: ${realize(f)}.`, verdict: 'unknown', proof: [], touched: f.s };
   }
   private ask(t: string): Reply {
-    const q = parseQ(t); if (!q) return { proof: [], text: 'I could not parse that question. Try "Is X a Y?", "Who works for X?", "What is the capital of X?", "What is X?".' };
+    const q = parseQ(t); if (!q) return { miss: true, proof: [], text: 'I could not parse that question. Try "Is X a Y?", "Who works for X?", "What is the capital of X?", "What is X?".' };
     if (q.k === 'yn') {
       const r = this.verify(q.f), s = realize(q.f);
       if (r.v === 'supported') return { text: `Yes. ${s}.`, verdict: 'supported', proof: r.proof, touched: q.f.s };
       if (r.v === 'contradicted') return { text: `No. I hold that ${realize(r.clash![0]).toLowerCase()}.`, verdict: 'contradicted', proof: r.proof, touched: q.f.s };
-      return { text: `I don't know. Nothing I hold supports or contradicts "${s}".`, verdict: 'unknown', proof: [], touched: q.f.s };
+      return { miss: true, text: `I don't know. Nothing I hold supports or contradicts "${s}".`, verdict: 'unknown', proof: [], touched: q.f.s };
     }
     if (q.k === 'read') {
       const rs = this.get(q.s, q.key);
       return rs.length ? { text: `${cap(q.label)}: ${rs.map(r => r.name).join(', ')}.`, verdict: 'supported', proof: rs.map(r => this.line(q.s, q.key, r)), touched: q.s }
-        : { text: `I hold nothing for ${q.label}.`, verdict: 'unknown', proof: [] };
+        : { miss: true, text: `I hold nothing for ${q.label}.`, verdict: 'unknown', proof: [] };
     }
     const up = this.closure(q.s, 'is a'), loc = this.closure(q.s, 'located in'), props = this.get(q.s, 'is'), parts: string[] = [];
     const direct = this.get(q.s, 'is a').map(r => r.name);
@@ -182,7 +185,7 @@ export class Darle {
     if (props.length) parts.push(`${parts.length ? 'It' : cap(q.s)} is ${props.map(p => p.name).join(', ')}`);
     if (loc.names.length) parts.push(`${parts.length ? 'It' : cap(q.s)} is located in ${loc.names.join(', within ')}`);
     return parts.length ? { text: parts.join('. ') + '.', verdict: 'supported', proof: [...up.proof, ...loc.proof, ...props.map(p => this.line(q.s, 'is', p))], touched: q.s }
-      : { text: `I hold nothing about ${q.s}.`, verdict: 'unknown', proof: [] };
+      : { miss: true, text: `I hold nothing about ${q.s}.`, verdict: 'unknown', proof: [] };
   }
 }
 export function seeded(): Darle { const d = new Darle(); d.seed(SEED); return d; }

@@ -9,3 +9,9 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false

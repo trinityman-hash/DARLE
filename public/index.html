@@ -1,66 +1,82 @@
 <!doctype html>
-<html lang="en">
+<html lang='en'>
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>DARLE — a thinking machine with no neural network</title>
-<meta name="description" content="DARLE stores facts as hyperdimensional vectors, checks claims against them, and shows a proof for every answer.">
-<link rel="stylesheet" href="/style.css">
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover'>
+<title>DARLE | Language model with a verification layer</title>
+<meta name='description' content='DARLE puts a language model behind a typed output gate, a fact verifier and a hyperdimensional memory, so every answer shows what was checked. Try it live.'>
+<meta name='theme-color' content='#f3efe4'>
+<meta property='og:type' content='website'>
+<meta property='og:title' content='DARLE | Language model with a verification layer'>
+<meta property='og:description' content='Typed output, exact calculation and fact verification around any OpenAI-compatible language model.'>
+<meta name='twitter:card' content='summary'>
+<link rel='icon' href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%23ff4f12'/%3E%3Crect x='2' y='2' width='4' height='4' fill='%23141414'/%3E%3C/svg%3E">
+<link rel='stylesheet' href='/style.css'>
+<script type='application/ld+json'>{"@context":"https://schema.org","@type":"SoftwareApplication","name":"DARLE","applicationCategory":"UtilitiesApplication","operatingSystem":"Any (web)","description":"A language-model front end with typed output, exact calculation and fact verification."}</script>
 </head>
 <body>
-<header class="top"><a class="mark" href="#top">darle</a><nav aria-label="Sections"><a href="#chat">talk to it</a><a href="#how">how it works</a><a href="#limits">limits</a></nav></header>
-<main id="top">
-<section class="hero">
+<header class='bar'>
+  <h1 class='mark'>darle</h1>
+  <p class='tag'>language model behind a verifier</p>
+  <nav aria-label='Sections'><a href='#design'>how it works</a><a href='#limits'>limits</a></nav>
+  <span class='mode' id='mode' role='status'>connecting</span>
+</header>
+<div class='shell'>
+  <main class='console' aria-label='Conversation'>
+    <div id='log' class='log' role='log' aria-live='polite'>
+      <div class='empty' id='empty'>
+        <p>Ask anything. State a fact and it is remembered, then used to check later answers.</p>
+        <div class='chips'><button type='button' data-ex='Is a whale an animal?'>Is a whale an animal?</button><button type='button' data-ex='What is 1234 * 5678?'>What is 1234 * 5678?</button><button type='button' data-ex='Sam lives in Lyon.'>Sam lives in Lyon.</button></div>
+      </div>
+    </div>
+    <form id='form' class='form' autocomplete='off'>
+      <label for='prompt'>message</label>
+      <textarea id='prompt' rows='2' maxlength='500' placeholder='Type here. Enter sends, Shift+Enter adds a line.' required></textarea>
+      <div class='ctl'><button class='btn' id='send' type='submit' disabled>Send</button><button class='ghost' id='clear' type='button'>Clear screen</button></div>
+    </form>
+  </main>
+  <aside class='rail' aria-label='Inspector'>
+    <section><h2>last answer</h2><div id='trace'><p class='note'>Nothing yet.</p></div></section>
+    <section><h2>memory</h2>
+      <figure><canvas id='matrix' width='560' height='560' role='img' aria-label='Bit pattern of the memory vector for France'></canvas><figcaption>Stored vector for the last subject: 8,192 bits, orange where set.</figcaption></figure>
+      <dl class='stats'><div><dt>vectors</dt><dd id='s-b'>-</dd></div><div><dt>facts</dt><dd id='s-f'>-</dd></div><div><dt>dimensions</dt><dd id='s-d'>-</dd></div><div><dt>memory</dt><dd id='s-m'>-</dd></div></dl>
+    </section>
+    <section><h2>language model</h2><p id='engine' class='note'>Checking.</p></section>
+  </aside>
+</div>
+<section id='design' class='doc'>
   <div>
-    <h1><span class="wide">memory, not weights.</span><span>every answer has a proof.</span></h1>
-    <p>DARLE keeps what you tell it as bound hyperdimensional vectors, reads them back by unbinding, and chains facts across several steps. It says “I don’t know” when nothing supports a claim, and it never fills a gap with a guess.</p>
-    <a class="btn" href="#chat">Start talking</a>
+    <h2>how an answer is made</h2>
+    <svg class='dg' viewBox='0 0 560 372' role='img' aria-labelledby='dg-t'><title id='dg-t'>Four layers from top to bottom: typed gate, language model, verifier, memory</title>
+      <defs><g id='pl'><path d='M40 0 L120 -32 L200 0 L120 32 Z'/><path class='sd' d='M40 0 V9 L120 41 V32 Z'/><path class='sd' d='M120 32 V41 L200 9 V0 Z'/></g></defs>
+      <path class='ln' d='M40 59V140M200 59V140M40 149V230M200 149V230M40 239V320M200 239V320'/>
+      <use href='#pl' y='320'/><use href='#pl' y='230'/><use class='hot' href='#pl' y='140'/><use href='#pl' y='50'/>
+      <text x='236' y='46'>1 typed gate</text><text class='sub' x='236' y='64'>reply must match a schema</text>
+      <text x='236' y='136'>2 language model</text><text class='sub' x='236' y='154'>any OpenAI-compatible server</text>
+      <text x='236' y='226'>3 verifier</text><text class='sub' x='236' y='244'>claims checked against memory</text>
+      <text x='236' y='316'>4 memory</text><text class='sub' x='236' y='334'>8,192-bit vectors, exact recall</text>
+    </svg>
   </div>
-  <figure class="lens">
-    <canvas id="matrix" width="560" height="560" role="img" aria-label="Bit pattern of one memory vector"></canvas>
-    <figcaption>The stored vector for <b id="fp-name">france</b>: 8,192 bits. Orange bits are 1. It updates as you teach it.</figcaption>
-  </figure>
-</section>
-<section class="stats" aria-label="Memory size">
-  <dl>
-    <div><dt>dimensions</dt><dd id="s-d">…</dd></div>
-    <div><dt>memory vectors</dt><dd id="s-b">…</dd></div>
-    <div><dt>facts held</dt><dd id="s-f">…</dd></div>
-    <div><dt>memory used</dt><dd id="s-m">…</dd></div>
-  </dl>
-</section>
-<section id="chat" class="chat">
-  <h2>talk to it</h2>
-  <p class="lede">Teach it facts, ask it questions, correct it. Open “proof” under any answer to see the stored links and how strongly each matched.</p>
-  <div id="log" class="log" role="log" aria-live="polite">
-    <div class="empty" id="empty"><p>It already knows a few capitals, places and animal groups. Try one, or type “help”.</p>
-      <div class="chips"><button type="button" data-ex="Is a whale an animal?">Is a whale an animal?</button><button type="button" data-ex="What is the capital of Japan?">What is the capital of Japan?</button><button type="button" data-ex="Sam works for Acme.">Sam works for Acme.</button></div></div>
-  </div>
-  <form id="form" class="form" autocomplete="off">
-    <label for="prompt">Your message</label>
-    <textarea id="prompt" rows="2" maxlength="500" placeholder="Teach a fact or ask a question…" required></textarea>
-    <div class="ctl"><button class="btn" id="send" type="submit" disabled>Send</button><button class="ghost" id="clear" type="button">Clear screen</button></div>
-    <p class="hint">Enter sends, Shift+Enter adds a line. Clearing the screen does not clear its memory. <b id="mode">connecting…</b></p>
-  </form>
-</section>
-<section id="how" class="how">
-  <h2>how it works</h2>
   <ol>
-    <li><b>Parse.</b> A rule grammar turns your sentence into one fact or one question. Sentences it cannot parse are refused, not guessed at.</li>
-    <li><b>Encode.</b> Every word is a fixed random 8,192-bit vector made from its spelling, so nothing is trained. A fact binds a relation to its object with XOR.</li>
-    <li><b>Store.</b> The bound vector is added into the subject’s counters, and into the object’s counters under the inverse relation. Adding it again with the opposite sign removes it exactly.</li>
-    <li><b>Read.</b> To answer, DARLE unbinds the relation from a subject’s counters and snaps the noisy result to the nearest known word. It keeps a match only if it is at least 5 standard deviations above chance.</li>
-    <li><b>Reason.</b> For “is a”, “is in” and “part of”, it repeats that read across up to six hops. Each hop appears in the proof.</li>
-    <li><b>Verify.</b> A claim is supported, contradicted (by an opposite fact or by a one-value relation like “lives in”), or unknown.</li>
-    <li><b>Forget.</b> Vectors idle for 500 turns are halved, then dropped. Total memory is capped at 5,000 vectors.</li>
+    <li><b>Route.</b> Arithmetic goes to an exact calculator. Questions DARLE can prove from memory are answered there, with no model call and no cost.</li>
+    <li><b>Recall.</b> Otherwise it pulls what it holds about the things you mention and hands those facts to the model.</li>
+    <li><b>Generate.</b> The model must reply in a fixed shape: answer, checkable claims, optional calculation. Anything else is rejected and re-asked.</li>
+    <li><b>Calculate.</b> The model asks for arithmetic instead of doing it. The result comes back as a fact.</li>
+    <li><b>Verify.</b> Each claim is checked against memory. A conflict sends the model back with the evidence. After four tries DARLE declines instead of guessing.</li>
+    <li><b>Learn.</b> Only facts you state are stored. The model's output never is, so a wrong answer cannot contaminate later ones.</li>
   </ol>
 </section>
-<section id="limits" class="how">
+<section id='limits' class='doc'>
   <h2>limits</h2>
-  <p>DARLE is not a free-text writer. It understands the sentence forms listed under “help”, treats “dog” and “dogs” as different words, and has no sense of time. Its knowledge is what it was seeded with plus what you teach it in the session. It can reason only through links you or its seed have stated.</p>
+  <ul>
+    <li>Reasoning quality is the attached model's. DARLE catches three things: claims that conflict with facts it holds, wrong arithmetic, and malformed output.</li>
+    <li>Claims outside DARLE's relation forms, or about things it holds nothing on, are shown as unverified, not as true.</li>
+    <li>Without a model attached it answers only from memory and the calculator.</li>
+    <li>Memory lives in RAM and is cleared on restart.</li>
+  </ul>
 </section>
-</main>
-<footer><span>darle</span><span>No neural network. No training run.</span></footer>
-<script src="/app.js" defer></script>
+<footer><span>darle</span><span>typed output, exact arithmetic, checked claims</span></footer>
+<noscript>DARLE needs JavaScript.</noscript>
+<script src='/app.js' defer></script>
 </body>
 </html>
