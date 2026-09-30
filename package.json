@@ -1,0 +1,19 @@
+{
+  "name": "darle",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "bundle": "esbuild src/app.ts --bundle --minify --format=iife --outfile=public/app.js && esbuild src/darle.worker.ts --bundle --minify --format=iife --outfile=public/darle.worker.js && esbuild server/server.ts --bundle --platform=node --format=esm --outfile=dist/server.js",
+    "build": "npm run bundle",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "check": "tsc",
+    "start": "node dist/server.js"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}

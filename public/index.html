@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DARLE — a thinking machine with no neural network</title>
+<meta name="description" content="DARLE stores facts as hyperdimensional vectors, checks claims against them, and shows a proof for every answer.">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top"><a class="mark" href="#top">darle</a><nav aria-label="Sections"><a href="#chat">talk to it</a><a href="#how">how it works</a><a href="#limits">limits</a></nav></header>
+<main id="top">
+<section class="hero">
+  <div>
+    <h1><span class="wide">memory, not weights.</span><span>every answer has a proof.</span></h1>
+    <p>DARLE keeps what you tell it as bound hyperdimensional vectors, reads them back by unbinding, and chains facts across several steps. It says “I don’t know” when nothing supports a claim, and it never fills a gap with a guess.</p>
+    <a class="btn" href="#chat">Start talking</a>
+  </div>
+  <figure class="lens">
+    <canvas id="matrix" width="560" height="560" role="img" aria-label="Bit pattern of one memory vector"></canvas>
+    <figcaption>The stored vector for <b id="fp-name">france</b>: 8,192 bits. Orange bits are 1. It updates as you teach it.</figcaption>
+  </figure>
+</section>
+<section class="stats" aria-label="Memory size">
+  <dl>
+    <div><dt>dimensions</dt><dd id="s-d">…</dd></div>
+    <div><dt>memory vectors</dt><dd id="s-b">…</dd></div>
+    <div><dt>facts held</dt><dd id="s-f">…</dd></div>
+    <div><dt>memory used</dt><dd id="s-m">…</dd></div>
+  </dl>
+</section>
+<section id="chat" class="chat">
+  <h2>talk to it</h2>
+  <p class="lede">Teach it facts, ask it questions, correct it. Open “proof” under any answer to see the stored links and how strongly each matched.</p>
+  <div id="log" class="log" role="log" aria-live="polite">
+    <div class="empty" id="empty"><p>It already knows a few capitals, places and animal groups. Try one, or type “help”.</p>
+      <div class="chips"><button type="button" data-ex="Is a whale an animal?">Is a whale an animal?</button><button type="button" data-ex="What is the capital of Japan?">What is the capital of Japan?</button><button type="button" data-ex="Sam works for Acme.">Sam works for Acme.</button></div></div>
+  </div>
+  <form id="form" class="form" autocomplete="off">
+    <label for="prompt">Your message</label>
+    <textarea id="prompt" rows="2" maxlength="500" placeholder="Teach a fact or ask a question…" required></textarea>
+    <div class="ctl"><button class="btn" id="send" type="submit" disabled>Send</button><button class="ghost" id="clear" type="button">Clear screen</button></div>
+    <p class="hint">Enter sends, Shift+Enter adds a line. Clearing the screen does not clear its memory. <b id="mode">connecting…</b></p>
+  </form>
+</section>
+<section id="how" class="how">
+  <h2>how it works</h2>
+  <ol>
+    <li><b>Parse.</b> A rule grammar turns your sentence into one fact or one question. Sentences it cannot parse are refused, not guessed at.</li>
+    <li><b>Encode.</b> Every word is a fixed random 8,192-bit vector made from its spelling, so nothing is trained. A fact binds a relation to its object with XOR.</li>
+    <li><b>Store.</b> The bound vector is added into the subject’s counters, and into the object’s counters under the inverse relation. Adding it again with the opposite sign removes it exactly.</li>
+    <li><b>Read.</b> To answer, DARLE unbinds the relation from a subject’s counters and snaps the noisy result to the nearest known word. It keeps a match only if it is at least 5 standard deviations above chance.</li>
+    <li><b>Reason.</b> For “is a”, “is in” and “part of”, it repeats that read across up to six hops. Each hop appears in the proof.</li>
+    <li><b>Verify.</b> A claim is supported, contradicted (by an opposite fact or by a one-value relation like “lives in”), or unknown.</li>
+    <li><b>Forget.</b> Vectors idle for 500 turns are halved, then dropped. Total memory is capped at 5,000 vectors.</li>
+  </ol>
+</section>
+<section id="limits" class="how">
+  <h2>limits</h2>
+  <p>DARLE is not a free-text writer. It understands the sentence forms listed under “help”, treats “dog” and “dogs” as different words, and has no sense of time. Its knowledge is what it was seeded with plus what you teach it in the session. It can reason only through links you or its seed have stated.</p>
+</section>
+</main>
+<footer><span>darle</span><span>No neural network. No training run.</span></footer>
+<script src="/app.js" defer></script>
+</body>
+</html>
