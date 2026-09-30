@@ -6,7 +6,7 @@ p{margin:0}h2{margin:0 0 .6rem;font:700 .8rem var(--mono);letter-spacing:.02em}
 .bar{display:flex;align-items:center;gap:1.25rem;padding:.7rem var(--pad);border-bottom:2px solid var(--ink);position:sticky;top:0;z-index:3;background:var(--paper)}
 .mark{margin:0;font-size:1.5rem;font-weight:800;letter-spacing:-.05em;line-height:1}
 .tag{font:600 .78rem var(--mono);color:var(--mute)}
-.bar nav{margin-left:auto;display:flex;gap:1.1rem;font-weight:600;font-size:.95rem}.bar nav a{text-decoration:none}.bar nav a:hover{text-decoration:underline;text-decoration-thickness:2px;text-decoration-color:var(--or)}
+.bar nav{margin-left:auto;display:flex;gap:1.1rem;font-weight:600;font-size:.95rem}.bar nav a{text-decoration:none;white-space:nowrap}.bar nav a:hover{text-decoration:underline;text-decoration-thickness:2px;text-decoration-color:var(--or)}
 .mode{font:600 .74rem var(--mono);border:1.5px solid var(--ink);padding:.15rem .55rem;white-space:nowrap}
 .shell{display:grid;grid-template-columns:minmax(0,1fr) 23rem;min-height:calc(100dvh - 3.4rem)}
 .console{display:flex;flex-direction:column;border-right:2px solid var(--ink);min-width:0}
@@ -42,5 +42,5 @@ dt{font:600 .68rem var(--mono);color:var(--mute)}dd{margin:0;font:700 1.15rem va
 .dg .ln{stroke:var(--ink);stroke-dasharray:3 4;fill:none;stroke-width:1}.dg text{font:700 13px var(--mono);fill:var(--ink)}.dg .sub{font-weight:400;fill:#141414b3}
 footer{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:1.1rem var(--pad);border-top:2px solid var(--ink);font:600 .78rem var(--mono)}
 @keyframes in{from{opacity:0;transform:translateY(4px)}}
-@media(max-width:860px){.shell{grid-template-columns:1fr}.console{border-right:0;border-bottom:2px solid var(--ink)}.log{max-height:60dvh}.doc{grid-template-columns:1fr;gap:1.5rem}.tag{display:none}.turn{grid-template-columns:3rem minmax(0,1fr)}}
+@media(max-width:860px){.shell{grid-template-columns:1fr}.console{border-right:0;border-bottom:2px solid var(--ink)}.log{max-height:60dvh}.doc,#limits{grid-template-columns:1fr;gap:1.5rem}.tag{display:none}.turn{grid-template-columns:3rem minmax(0,1fr)}.bar{gap:.75rem}.bar nav{gap:.7rem;font-size:.88rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.turn{animation:none}}
