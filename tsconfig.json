@@ -1,1 +1,7 @@
-{ "compilerOptions": { "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler", "strict": true, "noEmit": true, "allowImportingTsExtensions": true, "lib": ["ES2022", "DOM", "WebWorker"], "skipLibCheck": true }, "include": ["src", "server", "test"], "types": ["node"] }
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler", "strict": true, "noEmit": true,
+    "allowImportingTsExtensions": true, "lib": ["ES2022", "DOM", "WebWorker"], "skipLibCheck": true, "types": ["node"]
+  },
+  "include": ["src", "server", "test"]
+}

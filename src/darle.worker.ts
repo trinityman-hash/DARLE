@@ -1,7 +1,10 @@
+// Browser-only fallback (static hosting): memory + calculator, no language model.
 import { seeded } from './darle.ts';
-const d = seeded(); const bits = (n?: string) => (n ? d.bits(n) : null) ?? d.bits('france');
-postMessage({ type: 'ready', stats: d.stats(), bits: bits() });
-onmessage = (e: MessageEvent) => {
-  const text = String(e.data.text ?? '').slice(0, 500), reply = d.chat(text);
-  postMessage({ type: 'reply', reply, stats: d.stats(), bits: bits(reply.touched) });
+import { Agent } from './agent.ts';
+const a = new Agent(seeded(), null);
+const bits = (n?: string) => (n ? a.mem.bits(n) : null) ?? a.mem.bits('france');
+postMessage({ type: 'ready', stats: a.mem.stats(), bits: bits() });
+onmessage = async (e: MessageEvent) => {
+  const reply = await a.turn(String(e.data.text ?? '').slice(0, 500));
+  postMessage({ type: 'reply', reply, stats: a.mem.stats(), bits: bits(reply.touched) });
 };
