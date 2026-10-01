@@ -125,14 +125,15 @@ class Handler(BaseHTTPRequestHandler):
         elif "schema" not in data or "max_new_tokens" in data:
             self._json(400, {"error": "invalid_extraction_request"})
             return
+        else:
+            schema = data.get("schema")
+            if not isinstance(schema, dict) or schema.get("type") != "object" or len(json.dumps(schema)) > 4096:
+                self._json(400, {"error": "invalid_schema"})
+                return
         try:
             with _inference_lock:
                 model = engine()
                 if self.path == "/v1/extract":
-                    schema = data.get("schema")
-                    if not isinstance(schema, dict) or schema.get("type") != "object" or len(json.dumps(schema)) > 4096:
-                        self._json(400, {"error": "invalid_schema"})
-                        return
                     result = model.extract(text, schema)
                     if hasattr(result, "model_dump"):
                         result = result.model_dump()
