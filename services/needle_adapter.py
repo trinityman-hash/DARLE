@@ -28,7 +28,7 @@ if HOST not in {"127.0.0.1", "::1", "localhost"} and not TOKEN:
     raise RuntimeError("Non-loopback binding requires DARLE_NEEDLE_TOKEN")
 
 _engine: Any = None
-_engine_lock = threading.Lock()
+_engine_lock = threading.Lock()\n_inference_lock = threading.Lock()
 
 
 def engine():
