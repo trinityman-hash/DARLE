@@ -14,8 +14,8 @@ message -> arithmetic? --yes--> calculator
         parse + memory --answered--> reply (0 tokens)
               | miss
         workload classification -> eligible model (when configured)
-              | structured action -> Needle (planned adapter)
-              | supported puzzle -> TRM (planned adapter)
+              | structured extraction -> Needle adapter (when explicitly configured; not yet Agent-wired)
+              | supported puzzle -> TRM (not yet integrated)
               | general language -> LLM
               v
         schema/policy/evidence validation -> reply or abstain
