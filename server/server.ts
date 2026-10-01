@@ -5,9 +5,15 @@ import { join, extname, normalize } from 'node:path';
 import { seeded } from '../src/darle.ts';
 import { Agent } from '../src/agent.ts';
 import { llmFromEnv } from '../src/llm.ts';
+import type { NeedleConfig } from '../src/needle-client.ts';
 
 const PUB = join(process.cwd(), 'public'), PORT = Number(process.env.PORT ?? 8080), MAX = 64, TTL = 20 * 60e3, PER_MIN = 40, ID = /^[\w-]{8,64}$/;
 const LLM = llmFromEnv(process.env);
+const NEEDLE: NeedleConfig | null = process.env.NEEDLE_BASE_URL ? {
+  base: process.env.NEEDLE_BASE_URL,
+  token: process.env.NEEDLE_API_TOKEN || undefined,
+  timeoutMs: Number(process.env.NEEDLE_TIMEOUT_MS ?? 15000),
+} : null;
 const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.txt': 'text/plain; charset=utf-8', '.svg': 'image/svg+xml' };
 const H = { 'content-security-policy': "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'", 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', 'permissions-policy': 'camera=(), microphone=(), geolocation=()', 'cross-origin-opener-policy': 'same-origin' };
 interface Sess { a: Agent; t: number; q: Promise<unknown> }
@@ -23,7 +29,7 @@ function limited(req: IncomingMessage): boolean {
 function session(id: string): Sess {
   const now = Date.now(); for (const [k, s] of sessions) if (now - s.t > TTL) sessions.delete(k);
   let s = sessions.get(id);
-  if (!s) { if (sessions.size >= MAX) sessions.delete(sessions.keys().next().value!); s = { a: new Agent(seeded(), LLM), t: now, q: Promise.resolve() }; }
+  if (!s) { if (sessions.size >= MAX) sessions.delete(sessions.keys().next().value!); s = { a: new Agent(seeded(), LLM, fetch, NEEDLE), t: now, q: Promise.resolve() }; }
   s.t = now; sessions.delete(id); sessions.set(id, s); return s;
 }
 async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
@@ -51,4 +57,4 @@ createServer(async (req, res) => {
     if (p.includes('..')) throw new Error('path');
     res.writeHead(200, { ...H, 'content-type': TYPES[extname(p)] ?? 'application/octet-stream' }).end(await readFile(join(PUB, p)));
   } catch { res.writeHead(404, H).end('not found'); }
-}).listen(PORT, '0.0.0.0', () => console.log(`darle listening on :${PORT}, language model ${LLM ? LLM.model : 'not configured'}`));
+}).listen(PORT, '0.0.0.0', () => console.log(`darle listening on :${PORT}, language model ${LLM ? LLM.model : 'not configured'}, Needle ${NEEDLE ? 'configured' : 'not configured'}`));
