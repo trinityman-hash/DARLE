@@ -26,6 +26,15 @@ class SchemaValidationTests(unittest.TestCase):
     def test_rejects_non_json_schema_values(self):
         self.assertFalse(valid_schema({"type": "object", "value": object()}))
 
+    def test_rejects_deeply_nested_schema_without_raising(self):
+        schema = {"type": "object"}
+        current = schema
+        for _ in range(1500):
+            child = {}
+            current["child"] = child
+            current = child
+        self.assertFalse(valid_schema(schema))
+
 
 if __name__ == "__main__":
     unittest.main()
