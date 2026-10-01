@@ -1,6 +1,6 @@
 # DARLE + Needle: integration and model research plan
 
-Status: architecture proposal; no Needle weights are vendored, trained, or deployed by this document.
+Status: adapter contract implemented and CI-validated; Agent integration remains a proposal. No Needle weights are vendored, trained, or deployed.
 
 ## Decision
 
