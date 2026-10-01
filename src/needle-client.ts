@@ -8,7 +8,7 @@ export interface NeedleConfig {
 export interface NeedleResponse {
   request_id: string;
   model: string;
-  result: Record<string, unknown>;
+  result: Record<string, unknown> | null;
 }
 export async function completeNeedle(
   cfg: NeedleConfig,
@@ -41,7 +41,7 @@ export async function completeNeedle(
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('invalid Needle response');
     const data = raw as Record<string, unknown>;
     if (data.request_id !== requestId || typeof data.model !== 'string' ||
-        !data.result || typeof data.result !== 'object' || Array.isArray(data.result)) {
+        (data.result !== null && (typeof data.result !== 'object' || Array.isArray(data.result)))) {
       throw new Error('invalid Needle response shape');
     }
     return data as unknown as NeedleResponse;
