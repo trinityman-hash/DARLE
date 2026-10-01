@@ -6,6 +6,7 @@ separate server containers. Set NEEDLE_WEIGHTS to a reviewed local .cact file.
 """
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
 import os
@@ -13,13 +14,15 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
-os.environ.setdefault("NEEDLE_TELEMETRY", "0")
-os.environ.setdefault("DO_NOT_TRACK", "1")
+os.environ["NEEDLE_TELEMETRY"] = "0"
+os.environ["DO_NOT_TRACK"] = "1"
 
 MAX_BODY = 16 * 1024
 MAX_TEXT = 8 * 1024
 MODEL_ID = os.environ.get("DARLE_NEEDLE_MODEL_ID", "needle3-unpinned")
-WEIGHTS = os.environ.get("NEEDLE_WEIGHTS", "")\nWEIGHTS_SHA256 = os.environ.get("NEEDLE_WEIGHTS_SHA256", "").lower()
+WEIGHTS = os.environ.get("NEEDLE_WEIGHTS", "")
+WEIGHTS_SHA256 = os.environ.get("NEEDLE_WEIGHTS_SHA256", "").lower()
+WEIGHTS_SHA256 = os.environ.get("NEEDLE_WEIGHTS_SHA256", "").lower()
 TOKEN = os.environ.get("DARLE_NEEDLE_TOKEN", "")
 HOST = os.environ.get("DARLE_NEEDLE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("DARLE_NEEDLE_PORT", "8765"))
@@ -36,6 +39,14 @@ def engine():
     global _engine
     with _engine_lock:
         if _engine is None:
+            if not WEIGHTS or not WEIGHTS_SHA256:
+                raise RuntimeError("NEEDLE_WEIGHTS and NEEDLE_WEIGHTS_SHA256 are required")
+            digest = hashlib.sha256()
+            with open(WEIGHTS, "rb") as weights_file:
+                for chunk in iter(lambda: weights_file.read(1024 * 1024), b""):
+                    digest.update(chunk)
+            if not hmac.compare_digest(digest.hexdigest(), WEIGHTS_SHA256):
+                raise RuntimeError("Needle weight hash mismatch")
             from needle import Needle
             generation = int(os.environ.get("DARLE_NEEDLE_GENERATION", "3"))
             _engine = Needle(
@@ -134,4 +145,5 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    engine()  # Fail startup rather than advertising readiness without verified weights.
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
