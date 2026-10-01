@@ -15,6 +15,7 @@ export async function completeNeedle(
   requestId: string,
   text: string,
   fetchFn: typeof fetch = fetch,
+  schema?: Record<string, unknown>,
 ): Promise<NeedleResponse> {
   if (!cfg.base || !Number.isFinite(cfg.timeoutMs) || cfg.timeoutMs <= 0) {
     throw new Error('invalid Needle configuration');
@@ -22,7 +23,8 @@ export async function completeNeedle(
   if (!requestId || requestId.length > 128 || !text.trim() || text.length > 8192) {
     throw new Error('invalid Needle request');
   }
-  if (schema && (schema.type !== 'object' || JSON.stringify(schema).length > 4096)) throw new Error('invalid Needle schema');\n  const ctl = new AbortController();
+  if (schema && (schema.type !== 'object' || JSON.stringify(schema).length > 4096)) throw new Error('invalid Needle schema');
+  const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), cfg.timeoutMs);
   try {
     const response = await fetchFn(cfg.base.replace(/\/$/, '') + (schema ? '/v1/extract' : '/v1/complete'), {
