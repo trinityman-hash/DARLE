@@ -81,3 +81,12 @@ test('an unreachable model degrades gracefully; memory still works', async () =>
 test('without a model it answers from memory and says when it cannot parse', async () => {
   const a = new Agent(seeded(), null); const r = await a.turn('Tell me about Paris'); assert.equal(r.route, 'memory'); assert.match(r.text, /could not parse/);
 });
+
+test('specialist workload is identified and fallback to general LLM is disclosed', async () => {
+  const { m, a } = await rig([turn('Extracted fields.')]);
+  const r = await a.turn('Extract names and dates as JSON');
+  m.close();
+  assert.equal(r.route, 'model');
+  assert.ok(r.notes.some(n => n.includes('workload=needle') && n.includes('not configured')));
+  assert.equal(m.calls.length, 1);
+});
