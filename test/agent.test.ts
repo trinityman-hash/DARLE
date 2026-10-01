@@ -87,6 +87,6 @@ test('specialist workload is identified and fallback to general LLM is disclosed
   const r = await a.turn('Extract names and dates as JSON');
   m.close();
   assert.equal(r.route, 'model');
-  assert.ok(r.notes.some(n => n.includes('workload=needle') && n.includes('not configured')));
+  assert.ok(r.notes.some(n => n.includes('workload=needle') && n.includes('needle-provider-unavailable-language-fallback')));
   assert.equal(m.calls.length, 1);
 });
