@@ -22,17 +22,17 @@ export async function completeNeedle(
   if (!requestId || requestId.length > 128 || !text.trim() || text.length > 8192) {
     throw new Error('invalid Needle request');
   }
-  const ctl = new AbortController();
+  if (schema && (schema.type !== 'object' || JSON.stringify(schema).length > 4096)) throw new Error('invalid Needle schema');\n  const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), cfg.timeoutMs);
   try {
-    const response = await fetchFn(cfg.base.replace(/\/$/, '') + '/v1/complete', {
+    const response = await fetchFn(cfg.base.replace(/\/$/, '') + (schema ? '/v1/extract' : '/v1/complete'), {
       method: 'POST',
       signal: ctl.signal,
       headers: {
         'content-type': 'application/json',
         ...(cfg.token ? { authorization: 'Bearer ' + cfg.token } : {}),
       },
-      body: JSON.stringify({ request_id: requestId, text, max_new_tokens: 256 }),
+      body: JSON.stringify({ request_id: requestId, text, ...(schema ? { schema } : { max_new_tokens: 256 }) }),
     });
     if (!response.ok) throw new Error('Needle adapter returned HTTP ' + response.status);
     const raw: unknown = await response.json();
