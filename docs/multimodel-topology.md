@@ -1,10 +1,10 @@
 # DARLE multi-model execution topology
 
-Status: design and integration contract. This document does not claim that model weights or inference runtimes have been integrated.
+Status: partial implementation. DARLE has a conservative classifier, capability-aware registry, typed Needle HTTP client, and a private Python sidecar. The sidecar is not yet wired into the Agent or deployed, and no model artifact is included.
 
 ## Grounded reading of the proposed stack
 
-Needle and Tiny Recursive Models (TRM) solve different kinds of problems. Needle is a compact structured tool-use/extraction model. TRM is a small recurrent refinement network trained for constrained reasoning domains such as ARC-style grids, Sudoku, and mazes. TRM is not a drop-in natural-language chain-of-thought model or a general code-generation model. The upstream repository reports a 7M-parameter model and task-specific results; those results do not establish software-engineering or open-domain reasoning ability. Upstream repo: https://github.com/SamsungSAILMontreal/TinyRecursiveModels (MIT license per upstream repository).
+Needle and Tiny Recursive Models (TRM) solve different kinds of problems. The current upstream Needle 3 package (cactus-needle 3.0.1, Apache-2.0) documents a compact structured tool-use/extraction/embedding model, with platform engines and fine-tuning paths. The upstream README describes an 8–29 MB model family, so a specific 14 MB artifact must be pinned rather than treating that size as universal. TRM is a small recurrent refinement network trained for constrained reasoning domains such as ARC-style grids, Sudoku, and mazes. TRM is not a drop-in natural-language chain-of-thought model or a general code-generation model. The upstream repository reports a 7M-parameter model and task-specific results; those results do not establish software-engineering or open-domain reasoning ability. Upstream repo: https://github.com/SamsungSAILMontreal/TinyRecursiveModels (MIT license per upstream repository).
 
 The repository is archived/read-only per its README. Pin a reviewed commit and license, vendor only the minimum required source with attribution, and isolate its training dependencies from DARLE's Node deployment. Reproduction is a gate before adaptation.
 
@@ -28,11 +28,11 @@ The existing general language model can remain an optional server-side response/
 1. Run deterministic parsers/calculators and memory queries first.
 2. Route structured extraction and constrained action proposals to Needle.
 3. Route only supported symbolic/grid tasks to TRM after encoding and task-domain validation.
-4. Route open-ended language and software design to the configured general/reasoning LLM, if available and if data-transfer policy permits.
+4. Route open-ended language and software design to the configured general/reasoning LLM, if available and if data-transfer policy permits. The current Node Agent uses this configured provider as a disclosed fallback when Needle/TRM providers are not registered.
 5. Keep all model outputs as proposals. Validate schema, evidence, permissions, budgets, and task-specific correctness outside the model.
 6. If no eligible model is available, ask for clarification or return a clear unsupported-task response. Do not silently label a general LLM response as TRM reasoning.
 
-## Server/browser division
+## Needle adapter currently added\n\n- `services/needle_adapter.py` is a Python standard-library HTTP sidecar using the upstream `Needle.complete()` API. It returns model proposals only and never executes function calls.\n- `services/requirements-needle.txt` pins `cactus-needle==3.0.1`; install this in an isolated Python environment, not in the Node web bundle.\n- `src/needle-client.ts` is a typed Node client for `/v1/complete`, with timeout, input limits, bearer-token support, and response/request-ID validation.\n- Sidecar endpoints: `GET /healthz`; `POST /v1/complete` with `{request_id,text,max_new_tokens}`. Set `NEEDLE_WEIGHTS` to a reviewed local `.cact` file, `DARLE_NEEDLE_MODEL_ID` to a pinned artifact identifier, and optionally `DARLE_NEEDLE_TOKEN`. It binds to loopback by default and refuses non-loopback binding without a token.\n- The current Agent does not yet call this client. Provider registration, trusted server-side tool schemas, deployment wiring, artifact hash verification, and runtime tests are still required. Do not expose the sidecar publicly.\n\n## Server/browser division
 
 Browser inference is optional and capability-detected. Check WebGPU/WASM/runtime support, available memory, model artifact compatibility, and a measured latency budget. Do not assume a browser can execute an arbitrary PyTorch TRM checkpoint. The browser should download only versioned, integrity-checked model artifacts, cache them under explicit product policy, and offer cancellation and removal. No repository source, prompts, telemetry, or training feedback leaves the device without explicit consent.
 
