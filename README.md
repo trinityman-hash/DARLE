@@ -29,7 +29,7 @@ Only user statements are written to memory (hyperdimensional vectors, see `src/d
 - **General LLM**: optional language generation and broad software discussion.
 - **DARLE control plane**: deterministic routing, memory provenance, exact operations, authorization, and verification; it is software, not another neural model.
 
-The conservative task-shape classifier is in `src/model-routing.ts`, with tests in `test/model-routing.test.ts`. It classifies workload only; it does not load models or establish provider availability. Needle and TRM inference adapters, browser runtime support, training, and benchmark validation are not yet implemented. See [docs/multimodel-topology.md](docs/multimodel-topology.md), [docs/needle-architecture.md](docs/needle-architecture.md), and [docs/verified-change-loop.md](docs/verified-change-loop.md).
+The conservative task-shape classifier is in `src/model-routing.ts`; `src/model-registry.ts` selects only explicitly available, capability-matched providers and provides a transparent general-model fallback. The current agent uses this registry for its configured language-model route and records when a Needle/TRM specialist is unavailable. Tests are in `test/model-routing.test.ts` and `test/model-registry.test.ts`. The registry does not load models or implement inference. Needle and TRM inference adapters, browser runtime support, training, and benchmark validation are not yet implemented. See [docs/multimodel-topology.md](docs/multimodel-topology.md), [docs/needle-architecture.md](docs/needle-architecture.md), and [docs/verified-change-loop.md](docs/verified-change-loop.md).
 
 Upstream projects:
 - Needle: https://github.com/cactus-compute/needle
