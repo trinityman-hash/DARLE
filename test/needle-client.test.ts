@@ -57,3 +57,14 @@ test('Needle client normalizes cyclic and oversized schema failures', async () =
   await assert.rejects(() => completeNeedle(cfg, 'cycle-1', 'text', fetch, cyclic), /invalid Needle schema/);
   await assert.rejects(() => completeNeedle(cfg, 'large-1', 'text', fetch, { type: 'object', description: 'x'.repeat(4100) }), /invalid Needle schema/);
 });
+
+
+test('Needle client bounds response bytes and validates model metadata', async () => {
+  const cfg = { base: 'http://localhost', timeoutMs: 1000 };
+  const oversized: typeof fetch = async () => new Response(' '.repeat(65537), { status: 200 });
+  await assert.rejects(() => completeNeedle(cfg, 'large-response', 'task', oversized), /size limit/);
+  const emptyModel: typeof fetch = async () => new Response(JSON.stringify({
+    request_id: 'empty-model', model: ' ', result: {},
+  }), { status: 200 });
+  await assert.rejects(() => completeNeedle(cfg, 'empty-model', 'task', emptyModel), /response shape/);
+});
