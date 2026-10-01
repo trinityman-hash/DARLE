@@ -90,3 +90,31 @@ test('specialist workload is identified and fallback to general LLM is disclosed
   assert.ok(r.notes.some(n => n.includes('workload=needle') && n.includes('needle-provider-unavailable-language-fallback')));
   assert.equal(m.calls.length, 1);
 });
+
+
+test('configured Needle handles bounded extraction through the Agent and validates claims', async () => {
+  let calls = 0;
+  const fetchFn: typeof fetch = async (_url, init) => {
+    calls++;
+    const body = JSON.parse(String(init?.body));
+    assert.equal(body.schema.type, 'object');
+    return new Response(JSON.stringify({ request_id: body.request_id, model: 'needle3-test', result: turn('The extracted value is Indore.', []) }), { status: 200 });
+  };
+  const a = new Agent(seeded(), null, fetchFn, { base: 'http://127.0.0.1:8765', timeoutMs: 1000 });
+  const r = await a.turn('Extract the city as JSON');
+  assert.equal(calls, 1);
+  assert.equal(r.route, 'model');
+  assert.equal(r.text, 'The extracted value is Indore.');
+  assert.ok(r.notes.some(n => n.includes('needle-model=needle3-test')));
+});
+
+test('configured Needle invalid structured output is not accepted', async () => {
+  const fetchFn: typeof fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    return new Response(JSON.stringify({ request_id: body.request_id, model: 'needle3-test', result: { answer: 'untrusted', claims: [], calc: '', extra: true } }), { status: 200 });
+  };
+  const a = new Agent(seeded(), null, fetchFn, { base: 'http://127.0.0.1:8765', timeoutMs: 1000 });
+  const r = await a.turn('Extract the city as JSON');
+  assert.equal(r.route, 'none');
+  assert.match(r.text, /invalid structured result/);
+});
