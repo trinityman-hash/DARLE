@@ -14,7 +14,7 @@ test('Needle client sends bounded request and validates matching response ID', a
   const r = await completeNeedle({ base: 'http://127.0.0.1:8765/', token: 'secret', timeoutMs: 1000 }, 'req-1', 'extract fields', fetchFn);
   assert.equal(r.model, 'needle3-test');
   assert.equal((r.result as any).text, 'proposal');
-  assert.equal((seen?.headers as Record<string, string>).authorization, 'Bearer secret');
+  assert.equal(new Headers(seen?.headers).get('authorization'), 'Bearer secret');
   assert.equal(JSON.parse(String(seen?.body)).request_id, 'req-1');
 });
 test('Needle client rejects mismatched response IDs and malformed shapes', async () => {
