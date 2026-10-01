@@ -1,6 +1,6 @@
 # DARLE + Needle: integration and model research plan
 
-Status: adapter contract implemented and CI-validated; Agent integration remains a proposal. No Needle weights are vendored, trained, or deployed.
+Status: adapter contract and opt-in Agent structured-extraction integration implemented; CI validation pending for this revision. No Needle weights are vendored, trained, or deployed.
 
 ## Decision
 
@@ -91,4 +91,4 @@ Use a bounded worker queue, request deadline, concurrency cap, health/readiness 
 
 The repository now contains a Python sidecar (`services/needle_adapter.py`) with `POST /v1/complete` and `POST /v1/extract`, plus a typed Node client (`src/needle-client.ts`). The sidecar uses an initialized `needle.Needle` instance, requires a local weight file and matching SHA-256 before startup, disables Needle telemetry through documented environment flags, serializes inference, bounds request sizes, and does not register or execute tools. Schema validation has focused standard-library unit tests. A CI workflow runs TypeScript tests, type-check, build, Python syntax compilation, and sidecar schema tests.
 
-The adapter is a contract boundary, not a complete product integration: the Agent does not call it, no Needle weights or engine artifact are included, and the sidecar has not been exercised against a real model artifact in this work session. The current core still has rule-based parsing, hyperdimensional fact memory, exact arithmetic, and an OpenAI-compatible LLM client; it has no trained DARLE-specific neural weights, persistent per-user store, or independent security audit. Do not wire model-proposed actions to real side effects until authorization, confirmation, and end-to-end security tests are implemented.
+The adapter is now called by the Agent for classifier-selected structured extraction when `NEEDLE_BASE_URL` is configured. The Agent sends the fixed DARLE turn schema, validates the returned object locally, rejects malformed output and unsupported arithmetic requests, and never executes proposed tools or stores model output as user facts. The integration is opt-in and contract-tested with a mocked adapter; no Needle weights or engine artifact are included, and the sidecar has not been exercised against a real model artifact in this work session. The current core still has rule-based parsing, hyperdimensional fact memory, exact arithmetic, and an OpenAI-compatible LLM client; it has no trained DARLE-specific neural weights, persistent per-user store, or independent security audit. Do not wire model-proposed actions to real side effects until authorization, confirmation, and end-to-end security tests are implemented.
