@@ -81,7 +81,7 @@ class Handler(BaseHTTPRequestHandler):
         self._json(200, {"status": "ready", "model": MODEL_ID, "generation": int(os.environ.get("DARLE_NEEDLE_GENERATION", "3"))})
 
     def do_POST(self) -> None:
-        if self.path != "/v1/complete":
+        if self.path not in {"/v1/complete", "/v1/extract"}:
             self._json(404, {"error": "not_found"})
             return
         if TOKEN:
@@ -107,7 +107,7 @@ class Handler(BaseHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError):
             self._json(400, {"error": "invalid_json"})
             return
-        if not isinstance(data, dict) or set(data) - {"request_id", "text", "max_new_tokens"}:
+        if not isinstance(data, dict) or set(data) - {"request_id", "text", "max_new_tokens", "schema"}:
             self._json(400, {"error": "invalid_request_shape"})
             return
         request_id, text = data.get("request_id"), data.get("text")
@@ -122,12 +122,20 @@ class Handler(BaseHTTPRequestHandler):
             self._json(400, {"error": "invalid_max_new_tokens"})
             return
         try:
-            # Needle's native engine is process-global for a generation. Serialize
-            # inference so concurrent HTTP requests cannot corrupt shared state.
             with _inference_lock:
-                model = engine()
-                result = model.complete(text, max_new_tokens=max_tokens)
-            if not isinstance(result, dict):
+                if self.path == "/v1/extract":
+                    schema = data.get("schema")
+                    if not isinstance(schema, dict) or schema.get("type") != "object" or len(json.dumps(schema)) > 4096:
+                        self._json(400, {"error": "invalid_schema"})
+                        return
+                    from needle import extract
+                    result = extract(text, schema, weights=WEIGHTS)
+                    if hasattr(result, "model_dump"):
+                        result = result.model_dump()
+                else:
+                    model = engine()
+                    result = model.complete(text, max_new_tokens=max_tokens)
+            if result is not None and not isinstance(result, dict):
                 raise RuntimeError("unexpected_model_response")
             self._json(200, {
                 "request_id": request_id,
