@@ -23,6 +23,12 @@ message -> arithmetic? --yes--> calculator
 ```
 Only user statements are written to memory (hyperdimensional vectors, see `src/darle.ts`).
 
+## Optional compact action model
+
+Needle is being evaluated as a local structured-action and extraction specialist, not as a replacement for the verifier or a general-purpose chat model. Its Python runtime is separate from DARLE's Node/TypeScript server. The integration boundary, security requirements, training research direction, and evaluation gates are documented in [docs/needle-architecture.md](docs/needle-architecture.md). **The current application does not yet load Needle weights or execute Needle tool calls.** No DARLE-specific neural model has been trained or benchmarked yet.
+
+Upstream project: https://github.com/cactus-compute/needle
+
 ## API
 - `GET /healthz`
 - `GET /api/state?session=ID` -> `{stats, bits, llm}`
