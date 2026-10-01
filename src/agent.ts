@@ -67,10 +67,7 @@ export class Agent {
       const error = check(TURN, response.result);
       if (error) return { text: 'Needle returned an invalid structured result; no answer was accepted.', route: 'none', claims: [], proof: [], notes: [...notes, 'needle-invalid-output: ' + error], tokens: 0 };
       const out = response.result as Turn;
-      if (out.calc.trim()) {
-        try { const value = String(calc(out.calc)); notes.push(`calc ${out.calc} = ${value}`); }
-        catch { return { text: 'Needle requested an invalid calculation; no answer was accepted.', route: 'none', claims: [], proof: [], notes: [...notes, 'needle-calc-rejected'], tokens: 0 }; }
-      }
+      if (out.calc.trim()) return { text: 'Needle returned an arithmetic request outside the structured extraction contract; no answer was accepted.', route: 'none', claims: [], proof: [], notes: [...notes, 'needle-calc-not-supported'], tokens: 0 };
       const claims = out.claims.map(c => this.verifyClaim(c));
       if (claims.some(c => c.status === 'contradicted')) return { text: 'Needle output conflicts with verified memory, so I will not use it.', route: 'none', claims, proof: claims.flatMap(c => c.proof), notes: [...notes, 'needle-claim-conflict'], tokens: 0 };
       return { text: out.answer, route: 'model', claims, proof: [], notes: [...notes, `needle-model=${response.model}`], tokens: 0 };
