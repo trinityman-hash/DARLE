@@ -13,21 +13,27 @@ message -> arithmetic? --yes--> calculator
               | no
         parse + memory --answered--> reply (0 tokens)
               | miss
-        recall known facts -> model (JSON schema, temperature 0)
-              |                       |
-              |         invalid shape -> re-ask (max 4 tries total)
-              |         calc requested -> exact evaluator -> back to model
-              |         claims -> verifier -> conflict -> back to model with evidence
+        workload classification -> eligible model (when configured)
+              | structured action -> Needle (planned adapter)
+              | supported puzzle -> TRM (planned adapter)
+              | general language -> LLM
               v
-        verified / unverified / declined reply + trace
+        schema/policy/evidence validation -> reply or abstain
 ```
 Only user statements are written to memory (hyperdimensional vectors, see `src/darle.ts`).
 
-## Optional compact action model
+## Multi-model direction
 
-Needle is being evaluated as a local structured-action and extraction specialist, not as a replacement for the verifier or a general-purpose chat model. Its Python runtime is separate from DARLE's Node/TypeScript server. The integration boundary, security requirements, training research direction, and evaluation gates are documented in [docs/needle-architecture.md](docs/needle-architecture.md). **The current application does not yet load Needle weights or execute Needle tool calls.** No DARLE-specific neural model has been trained or benchmarked yet.
+- **Needle**: compact structured action and extraction specialist.
+- **Tiny Recursive Models (TRM)**: a recursive solver for supported structured domains such as grid/puzzle tasks. It is not a general chat or code-reasoning model.
+- **General LLM**: optional language generation and broad software discussion.
+- **DARLE control plane**: deterministic routing, memory provenance, exact operations, authorization, and verification; it is software, not another neural model.
 
-Upstream project: https://github.com/cactus-compute/needle
+The conservative task-shape classifier is in `src/model-routing.ts`, with tests in `test/model-routing.test.ts`. It classifies workload only; it does not load models or establish provider availability. Needle and TRM inference adapters, browser runtime support, training, and benchmark validation are not yet implemented. See [docs/multimodel-topology.md](docs/multimodel-topology.md), [docs/needle-architecture.md](docs/needle-architecture.md), and [docs/verified-change-loop.md](docs/verified-change-loop.md).
+
+Upstream projects:
+- Needle: https://github.com/cactus-compute/needle
+- TRM: https://github.com/SamsungSAILMontreal/TinyRecursiveModels
 
 ## API
 - `GET /healthz`
@@ -40,17 +46,14 @@ Session IDs match `[\w-]{8,64}`. 64 live sessions, 20 minute idle timeout, 40 re
 - Rule-based parsing covers few sentence forms; everything else goes to the model and is only verified where claims fit DARLE's relation forms.
 - Memory is RAM only. A restart clears it.
 - `response_format: json_schema` support depends on the model server. Output is re-validated regardless.
-
-## Revisit as it grows
-Persistence, a larger relation vocabulary, streaming replies, per-user auth, real rate limiting at the edge.
+- TRM is domain-specific. Recursive computation alone does not establish general reasoning ability.
 
 ## Deploy checklist
 - [ ] `npm test` green, `npm run build` succeeds
 - [ ] Render: Web Service, Node, build `npm install --include=dev && npm run build`, start `node dist/server.js`, health `/healthz`, `NODE_VERSION=22`
 - [ ] `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` set in Render (never committed)
-- [ ] Open the site: header says `server connected`, ask `Is a whale an animal?`, then `What is 1234 * 5678?`
-- [ ] Watch logs 15 minutes: `route` mix, `ms`, no 5xx
-- [ ] Rollback: Render, Deploys, previous deploy, Rollback. Trigger: health check failing, or 5xx on `/api/chat`
+- [ ] Verify live interface, API, latency, logs, and security headers
+- [ ] Rollback plan tested
 
 ## Run locally
 `npm install --include=dev && npm test && npm run build && PORT=8080 npm start`
