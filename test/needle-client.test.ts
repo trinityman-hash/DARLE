@@ -29,3 +29,16 @@ test('Needle client rejects invalid input and non-success responses', async () =
   const failed: typeof fetch = async () => new Response('', { status: 503 });
   await assert.rejects(() => completeNeedle(cfg, 'req-1', 'task', failed), /HTTP 503/);
 });
+
+test('Needle client uses schema-bound extraction endpoint', async () => {
+  let input = '';
+  const schema = { type: 'object', properties: { city: { type: 'string' } }, required: ['city'], additionalProperties: false };
+  const fetchFn: typeof fetch = async (url, init) => {
+    input = String(url) + ' ' + String(init?.body);
+    return new Response(JSON.stringify({ request_id: 'extract-1', model: 'needle3-test', result: { city: 'Indore' } }), { status: 200 });
+  };
+  const r = await completeNeedle({ base: 'http://localhost', timeoutMs: 1000 }, 'extract-1', 'I live in Indore', fetchFn, schema);
+  assert.match(input, /\/v1\/extract/);
+  assert.deepEqual(r.result, { city: 'Indore' });
+  await assert.rejects(() => completeNeedle({ base: 'http://localhost', timeoutMs: 1000 }, 'extract-2', 'text', fetchFn, { type: 'array' }), /invalid Needle schema/);
+});
