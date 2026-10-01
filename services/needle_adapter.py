@@ -34,6 +34,16 @@ _engine_lock = threading.Lock()
 _inference_lock = threading.Lock()
 
 
+def valid_schema(schema: Any) -> bool:
+    """Accept only bounded object schemas; Needle remains responsible for decoding."""
+    if not isinstance(schema, dict) or schema.get("type") != "object":
+        return False
+    try:
+        return len(json.dumps(schema, separators=(",", ":"), ensure_ascii=False)) <= 4096
+    except (TypeError, ValueError):
+        return False
+
+
 def engine():
     global _engine
     with _engine_lock:
@@ -127,7 +137,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         else:
             schema = data.get("schema")
-            if not isinstance(schema, dict) or schema.get("type") != "object" or len(json.dumps(schema)) > 4096:
+            if not valid_schema(schema):
                 self._json(400, {"error": "invalid_schema"})
                 return
         try:
