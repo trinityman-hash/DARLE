@@ -40,7 +40,7 @@ def valid_schema(schema: Any) -> bool:
         return False
     try:
         return len(json.dumps(schema, separators=(",", ":"), ensure_ascii=False)) <= 4096
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, RecursionError):
         return False
 
 
