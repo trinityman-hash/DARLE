@@ -42,3 +42,11 @@ test('Needle client uses schema-bound extraction endpoint', async () => {
   assert.deepEqual(r.result, { city: 'Indore' });
   await assert.rejects(() => completeNeedle({ base: 'http://localhost', timeoutMs: 1000 }, 'extract-2', 'text', fetchFn, { type: 'array' }), /invalid Needle schema/);
 });
+
+test('Needle extraction preserves documented null no-match result', async () => {
+  const fetchFn: typeof fetch = async () => new Response(JSON.stringify({
+    request_id: 'no-match', model: 'needle3-test', result: null,
+  }), { status: 200 });
+  const r = await completeNeedle({ base: 'http://localhost', timeoutMs: 1000 }, 'no-match', 'no matching fields', fetchFn, { type: 'object' });
+  assert.equal(r.result, null);
+});
