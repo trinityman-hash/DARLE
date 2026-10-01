@@ -4,6 +4,7 @@ import { Darle, RELS, realize, type Fact } from './darle.ts';
 import { obj, str, bool, arr, check, jsonSchema, type I } from './typed.ts';
 import { calc } from './calc.ts';
 import { complete, type LlmConfig, type Msg } from './llm.ts';
+import { classifyWorkload, type Workload } from './model-routing.ts';
 
 const CLAIM = obj({ s: str(40), rel: str(30), o: str(40), neg: bool() });
 export const TURN = obj({ answer: str(1500), claims: arr(CLAIM, 8), calc: str(120) });
@@ -25,9 +26,10 @@ export class Agent {
     if (/^[\d\s+\-*/%^().]+$/.test(ex) && /\d/.test(ex) && /[-+*/%^]/.test(ex)) {
       try { return this.done(text, { text: `${ex} = ${calc(ex)}`, route: 'calc', claims: [], proof: [], notes: [], tokens: 0 }); } catch { /* fall through */ }
     }
+    const hint = classifyWorkload(text);
     const r = this.mem.chat(text);
-    if (!r.miss || !this.llm) return this.done(text, { text: r.text, route: 'memory', claims: [], proof: r.proof, notes: [], tokens: 0, touched: r.touched });
-    return this.done(text, await this.viaModel(text));
+    if (!r.miss || !this.llm) return this.done(text, { text: r.text, route: 'memory', claims: [], proof: r.proof, notes: hint.workload === 'trm' || hint.workload === 'needle' ? [`workload=${hint.workload}; specialist provider is not configured`] : [], tokens: 0, touched: r.touched });
+    return this.done(text, await this.viaModel(text, hint.workload));
   }
   private done(q: string, r: TurnResult): TurnResult {
     this.history.push({ role: 'user', content: q }, { role: 'assistant', content: r.text });
@@ -48,8 +50,9 @@ export class Agent {
     if (!f.s || !f.rel || !f.o) return { fact, status: 'unknown', proof: [] };
     const r = this.mem.verify(f); return { fact, status: r.v, proof: r.proof };
   }
-  private async viaModel(text: string): Promise<TurnResult> {
+  private async viaModel(text: string, workload: Workload): Promise<TurnResult> {
     const facts = this.recall(text), notes: string[] = [];
+    if (workload === 'needle' || workload === 'trm') notes.push(`workload=${workload}; specialist provider is not configured; using configured general language model as fallback`);
     const msgs: Msg[] = [{ role: 'system', content: SYSTEM + (facts.length ? '\nKNOWN FACTS:\n' + facts.join('\n') : '') }, ...this.history.slice(-6), { role: 'user', content: text }];
     let tokens = 0, last: ClaimStatus[] = [];
     for (let k = 0; k < MAX_TRIES; k++) {
