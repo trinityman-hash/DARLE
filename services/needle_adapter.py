@@ -19,7 +19,7 @@ os.environ.setdefault("DO_NOT_TRACK", "1")
 MAX_BODY = 16 * 1024
 MAX_TEXT = 8 * 1024
 MODEL_ID = os.environ.get("DARLE_NEEDLE_MODEL_ID", "needle3-unpinned")
-WEIGHTS = os.environ.get("NEEDLE_WEIGHTS", "")
+WEIGHTS = os.environ.get("NEEDLE_WEIGHTS", "")\nWEIGHTS_SHA256 = os.environ.get("NEEDLE_WEIGHTS_SHA256", "").lower()
 TOKEN = os.environ.get("DARLE_NEEDLE_TOKEN", "")
 HOST = os.environ.get("DARLE_NEEDLE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("DARLE_NEEDLE_PORT", "8765"))
