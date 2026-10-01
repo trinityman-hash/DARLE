@@ -28,7 +28,8 @@ if HOST not in {"127.0.0.1", "::1", "localhost"} and not TOKEN:
     raise RuntimeError("Non-loopback binding requires DARLE_NEEDLE_TOKEN")
 
 _engine: Any = None
-_engine_lock = threading.Lock()\n_inference_lock = threading.Lock()
+_engine_lock = threading.Lock()
+_inference_lock = threading.Lock()
 
 
 def engine():
@@ -113,7 +114,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             # Needle's native engine is process-global for a generation. Serialize
             # inference so concurrent HTTP requests cannot corrupt shared state.
-            with _engine_lock:
+            with _inference_lock:
                 model = engine()
                 result = model.complete(text, max_new_tokens=max_tokens)
             if not isinstance(result, dict):
