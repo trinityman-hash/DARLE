@@ -23,7 +23,13 @@ export async function completeNeedle(
   if (!requestId || requestId.length > 128 || !text.trim() || text.length > 8192) {
     throw new Error('invalid Needle request');
   }
-  if (schema && (schema.type !== 'object' || JSON.stringify(schema).length > 4096)) throw new Error('invalid Needle schema');
+  if (schema) {
+    let encoded: string;
+    try { encoded = JSON.stringify(schema); } catch { throw new Error('invalid Needle schema'); }
+    if (schema.type !== 'object' || typeof encoded !== 'string' || encoded.length > 4096) {
+      throw new Error('invalid Needle schema');
+    }
+  }
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), cfg.timeoutMs);
   try {
