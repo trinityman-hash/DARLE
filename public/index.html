@@ -1,82 +1,86 @@
 <!doctype html>
-<html lang='en'>
+<html lang="en">
 <head>
-<meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover'>
-<title>DARLE | Language model with a verification layer</title>
-<meta name='description' content='DARLE puts a language model behind a typed output gate, a fact verifier and a hyperdimensional memory, so every answer shows what was checked. Try it live.'>
-<meta name='theme-color' content='#f3efe4'>
-<meta property='og:type' content='website'>
-<meta property='og:title' content='DARLE | Language model with a verification layer'>
-<meta property='og:description' content='Typed output, exact calculation and fact verification around any OpenAI-compatible language model.'>
-<meta name='twitter:card' content='summary'>
-<link rel='icon' href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%23ff4f12'/%3E%3Crect x='2' y='2' width='4' height='4' fill='%23141414'/%3E%3C/svg%3E">
-<link rel='stylesheet' href='/style.css'>
-<script type='application/ld+json'>{"@context":"https://schema.org","@type":"SoftwareApplication","name":"DARLE","applicationCategory":"UtilitiesApplication","operatingSystem":"Any (web)","description":"A language-model front end with typed output, exact calculation and fact verification."}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DARLE — Intelligence, with a verifier.</title>
+<meta name="description" content="DARLE places a typed, evidence-aware verification layer around language models, exact calculation and persistent reasoning workflows.">
+<meta name="theme-color" content="#171717">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DARLE — Intelligence, with a verifier.">
+<meta property="og:description" content="A language layer, a verifier, and a memory designed to show its work.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%23df2929'/%3E%3Crect x='2' y='2' width='4' height='4' fill='%23171717'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"DARLE","applicationCategory":"DeveloperApplication","operatingSystem":"Web","description":"A language model interface with typed output, exact calculation and fact verification."}</script>
 </head>
 <body>
-<header class='bar'>
-  <h1 class='mark'>darle</h1>
-  <p class='tag'>language model behind a verifier</p>
-  <nav aria-label='Sections'><a href='#design'>how it works</a><a href='#limits'>limits</a></nav>
-  <span class='mode' id='mode' role='status'>connecting</span>
+<header class="bar">
+  <a class="brand" href="/" aria-label="DARLE home"><span class="brand-mark">D.</span><span>DARLE<span class="brand-period">/</span></span></a>
+  <span class="bar-note">INTELLIGENCE, WITH A VERIFIER.</span>
+  <nav aria-label="Primary navigation"><a href="#system">SYSTEM</a><a href="#limits">BOUNDARIES</a></nav>
+  <span class="mode" id="mode" role="status">CONNECTING</span>
 </header>
-<div class='shell'>
-  <main class='console' aria-label='Conversation'>
-    <div id='log' class='log' role='log' aria-live='polite'>
-      <div class='empty' id='empty'>
-        <p>Ask anything. State a fact and it is remembered, then used to check later answers.</p>
-        <div class='chips'><button type='button' data-ex='Is a whale an animal?'>Is a whale an animal?</button><button type='button' data-ex='What is 1234 * 5678?'>What is 1234 * 5678?</button><button type='button' data-ex='Sam lives in Lyon.'>Sam lives in Lyon.</button></div>
-      </div>
+<main>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="red-dot"></span> A REASONING SYSTEM / 001</p>
+      <h1 id="hero-title">THINK<br><span>IN</span> STRUCTURE<span class="hero-period">.</span></h1>
+      <div class="hero-foot"><p>A language model behind a verifier. The model writes; DARLE checks what can be checked, calculates what can be calculated, and shows where evidence ends.</p><a class="text-link" href="#console">ENTER THE CONSOLE <span aria-hidden="true">↘</span></a></div>
     </div>
-    <form id='form' class='form' autocomplete='off'>
-      <label for='prompt'>message</label>
-      <textarea id='prompt' rows='2' maxlength='500' placeholder='Type here. Enter sends, Shift+Enter adds a line.' required></textarea>
-      <div class='ctl'><button class='btn' id='send' type='submit' disabled>Send</button><button class='ghost' id='clear' type='button'>Clear screen</button></div>
-    </form>
-  </main>
-  <aside class='rail' aria-label='Inspector'>
-    <section><h2>last answer</h2><div id='trace'><p class='note'>Nothing yet.</p></div></section>
-    <section><h2>memory</h2>
-      <figure><canvas id='matrix' width='560' height='560' role='img' aria-label='Bit pattern of the memory vector for France'></canvas><figcaption>Stored vector for the last subject: 8,192 bits, orange where set.</figcaption></figure>
-      <dl class='stats'><div><dt>vectors</dt><dd id='s-b'>-</dd></div><div><dt>facts</dt><dd id='s-f'>-</dd></div><div><dt>dimensions</dt><dd id='s-d'>-</dd></div><div><dt>memory</dt><dd id='s-m'>-</dd></div></dl>
-    </section>
-    <section><h2>language model</h2><p id='engine' class='note'>Checking.</p></section>
-  </aside>
-</div>
-<section id='design' class='doc'>
-  <div>
-    <h2>how an answer is made</h2>
-    <svg class='dg' viewBox='0 0 560 372' role='img' aria-labelledby='dg-t'><title id='dg-t'>Four layers from top to bottom: typed gate, language model, verifier, memory</title>
-      <defs><g id='pl'><path d='M40 0 L120 -32 L200 0 L120 32 Z'/><path class='sd' d='M40 0 V9 L120 41 V32 Z'/><path class='sd' d='M120 32 V41 L200 9 V0 Z'/></g></defs>
-      <path class='ln' d='M40 59V140M200 59V140M40 149V230M200 149V230M40 239V320M200 239V320'/>
-      <use href='#pl' y='320'/><use href='#pl' y='230'/><use class='hot' href='#pl' y='140'/><use href='#pl' y='50'/>
-      <text x='236' y='46'>1 typed gate</text><text class='sub' x='236' y='64'>reply must match a schema</text>
-      <text x='236' y='136'>2 language model</text><text class='sub' x='236' y='154'>any OpenAI-compatible server</text>
-      <text x='236' y='226'>3 verifier</text><text class='sub' x='236' y='244'>claims checked against memory</text>
-      <text x='236' y='316'>4 memory</text><text class='sub' x='236' y='334'>8,192-bit vectors, exact recall</text>
-    </svg>
-  </div>
-  <ol>
-    <li><b>Route.</b> Arithmetic goes to an exact calculator. Questions DARLE can prove from memory are answered there, with no model call and no cost.</li>
-    <li><b>Recall.</b> Otherwise it pulls what it holds about the things you mention and hands those facts to the model.</li>
-    <li><b>Generate.</b> The model must reply in a fixed shape: answer, checkable claims, optional calculation. Anything else is rejected and re-asked.</li>
-    <li><b>Calculate.</b> The model asks for arithmetic instead of doing it. The result comes back as a fact.</li>
-    <li><b>Verify.</b> Each claim is checked against memory. A conflict sends the model back with the evidence. After four tries DARLE declines instead of guessing.</li>
-    <li><b>Learn.</b> Only facts you state are stored. The model's output never is, so a wrong answer cannot contaminate later ones.</li>
-  </ol>
-</section>
-<section id='limits' class='doc'>
-  <h2>limits</h2>
-  <ul>
-    <li>Reasoning quality is the attached model's. DARLE catches three things: claims that conflict with facts it holds, wrong arithmetic, and malformed output.</li>
-    <li>Claims outside DARLE's relation forms, or about things it holds nothing on, are shown as unverified, not as true.</li>
-    <li>Without a model attached it answers only from memory and the calculator.</li>
-    <li>Memory lives in RAM and is cleared on restart.</li>
-  </ul>
-</section>
-<footer><span>darle</span><span>typed output, exact arithmetic, checked claims</span></footer>
-<noscript>DARLE needs JavaScript.</noscript>
-<script src='/app.js' defer></script>
+    <div class="hero-art" aria-label="Abstract architectural composition">
+      <div class="art-index">FIG. 01 <span>MEMORY / LOGIC / LANGUAGE</span></div>
+      <div class="art-block block-back"></div><div class="art-block block-side"></div><div class="art-block block-front"></div>
+      <div class="art-line line-one"></div><div class="art-line line-two"></div>
+      <div class="art-type">D<span>A</span><br>RLE<span class="art-red">.</span></div>
+      <div class="art-caption">A SYSTEM BUILT TO<br>SHOW ITS WORK.</div>
+      <div class="art-coord">IND / 22°43' N<br>DESIGN STUDY — 2026</div>
+    </div>
+    <div class="hero-index"><span>01 — A DIFFERENT KIND OF INTERFACE</span><span>SCROLL TO EXPLORE ↓</span><span>BUILD 1.0 / OPEN SYSTEM</span></div>
+  </section>
+
+  <section class="intro" id="system">
+    <p class="section-no">01 / THE PREMISE</p>
+    <div><h2>Fluent is not<br><em>the same as true.</em></h2><p>DARLE separates language generation from evidence checks. Deterministic work takes a deterministic route. Model output passes through a typed boundary. Claims are compared with known facts, and uncertainty stays visible.</p></div>
+    <div class="intro-stamp"><span>MODEL</span><b>≠</b><span>VERIFIER</span></div>
+  </section>
+
+  <section class="workspace" id="console">
+    <div class="workspace-head"><div><p class="eyebrow">02 / LIVE WORKSPACE</p><h2>The console<span class="hero-period">.</span></h2></div><p>Ask a question. State a fact.<br>Inspect the route and evidence.</p></div>
+    <div class="shell">
+      <section class="console" aria-label="DARLE conversation">
+        <div class="console-top"><span><i class="live-dot"></i> INTERACTIVE SESSION</span><span>INPUT / OUTPUT</span><button id="new-session" type="button" class="small-action">NEW SESSION ↗</button></div>
+        <div id="log" class="log" role="log" aria-live="polite" aria-relevant="additions">
+          <div class="empty" id="empty"><p class="empty-kicker">START WITH A TEST</p><h3>Give the system<br>a problem to inspect.</h3><p class="empty-copy">Facts you state can be recalled later in this session. Try a calculation or ask about a known fact.</p><div class="chips"><button type="button" data-ex="Is a whale an animal?">IS A WHALE AN ANIMAL? <span>↗</span></button><button type="button" data-ex="What is 1234 * 5678?">1234 × 5678 <span>↗</span></button><button type="button" data-ex="Sam lives in Lyon.">SAM LIVES IN LYON. <span>↗</span></button></div></div>
+        </div>
+        <form id="form" class="form" autocomplete="off">
+          <label for="prompt">YOUR INPUT <span id="counter">0 / 500</span></label>
+          <textarea id="prompt" rows="2" maxlength="500" placeholder="Write a question or state a fact…" required></textarea>
+          <div class="ctl"><span class="input-hint">ENTER TO SEND&nbsp; · &nbsp;SHIFT + ENTER FOR A NEW LINE</span><div class="form-actions"><button class="ghost" id="clear" type="button">CLEAR VIEW</button><button class="btn" id="send" type="submit" disabled>RUN QUERY <span>↗</span></button></div></div>
+        </form>
+      </section>
+      <aside class="rail" aria-label="Answer inspector">
+        <section class="inspector-section"><div class="rail-title"><h3>INSPECTOR</h3><span class="rail-number">A / 01</span></div><p class="rail-label">LAST ANSWER / TRACE</p><div id="trace"><p class="note">The route and available evidence for the latest answer will appear here.</p></div></section>
+        <section class="inspector-section memory-section"><div class="rail-title"><h3>MEMORY FIELD</h3><span class="rail-number">B / 02</span></div><figure><canvas id="matrix" width="560" height="560" role="img" aria-label="Visual representation of a stored memory vector"></canvas><figcaption>Binary vector field · visualized from active memory.</figcaption></figure><dl class="stats"><div><dt>VECTORS</dt><dd id="s-b">—</dd></div><div><dt>FACTS</dt><dd id="s-f">—</dd></div><div><dt>DIMENSIONS</dt><dd id="s-d">—</dd></div><div><dt>MEMORY</dt><dd id="s-m">—</dd></div></dl></section>
+        <section class="inspector-section engine-section"><div class="rail-title"><h3>MODEL LINK</h3><span class="rail-number">C / 03</span></div><p id="engine" class="note">Checking server configuration…</p><button id="export" type="button" class="export-action">EXPORT CONVERSATION <span>↓</span></button></section>
+      </aside>
+    </div>
+  </section>
+
+  <section class="method">
+    <div class="method-head"><p class="section-no">03 / UNDER THE SURFACE</p><h2>One answer.<br><em>Several gates.</em></h2><p>Each layer has a bounded responsibility. The verifier does not pretend to know what it cannot establish.</p></div>
+    <div class="method-list">
+      <article><span class="method-id">01</span><div><h3>ROUTE</h3><p>Arithmetic and supported memory questions bypass generation. The system uses a dedicated calculator or retrieves a stored proof.</p></div><span class="method-mark">↗</span></article>
+      <article><span class="method-id">02</span><div><h3>RECALL</h3><p>Relevant known facts are retrieved and supplied as context. User-stated facts remain distinct from model-generated statements.</p></div><span class="method-mark">↗</span></article>
+      <article><span class="method-id">03</span><div><h3>GENERATE</h3><p>The language layer returns a strict structured response. Runtime validation rejects malformed output before it can be used.</p></div><span class="method-mark">↗</span></article>
+      <article><span class="method-id">04</span><div><h3>VERIFY</h3><p>Supported claims are checked against the system's knowledge. Contradictions trigger a correction attempt; unresolved answers can be declined.</p></div><span class="method-mark">↗</span></article>
+    </div>
+  </section>
+
+  <section class="limits" id="limits"><p class="section-no">04 / ENGINEERING HONESTY</p><div><h2>Evidence has<br><em>an edge.</em></h2><p>DARLE can check structure, arithmetic, and consistency with facts it holds. It cannot guarantee that all model statements are true, that its memory is complete, or that a deployment is immune to attack. Treat unverified claims as unverified.</p><a class="text-link" href="https://github.com/trinityman-hash/DARLE" target="_blank" rel="noopener noreferrer">EXPLORE THE SOURCE <span>↗</span></a></div><div class="limits-note"><span class="red-dot"></span><p>SECURITY IS A PROCESS.<br>NOT A MARKETING CLAIM.</p></div></section>
+</main>
+<footer><a class="brand footer-brand" href="/"><span class="brand-mark">D.</span><span>DARLE<span class="brand-period">/</span></span></a><span>LANGUAGE / LOGIC / EVIDENCE</span><span>DESIGNED TO BE QUESTIONED. © 2026</span></footer>
+<noscript>DARLE requires JavaScript to run the interactive console.</noscript>
+<script src="/app.js" defer></script>
 </body>
 </html>
