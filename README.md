@@ -14,7 +14,7 @@ message -> arithmetic? --yes--> calculator
         parse + memory --answered--> reply (0 tokens)
               | miss
         workload classification -> eligible model (when configured)
-              | structured extraction -> Needle adapter (when explicitly configured; not yet Agent-wired)
+              | structured extraction -> Needle adapter (when explicitly configured)
               | supported puzzle -> TRM (not yet integrated)
               | general language -> LLM
               v
@@ -29,7 +29,7 @@ Only user statements are written to memory (hyperdimensional vectors, see `src/d
 - **General LLM**: optional language generation and broad software discussion.
 - **DARLE control plane**: deterministic routing, memory provenance, exact operations, authorization, and verification; it is software, not another neural model.
 
-The conservative task-shape classifier is in `src/model-routing.ts`; `src/model-registry.ts` selects only explicitly available, capability-matched providers and provides a transparent general-model fallback. The current agent uses this registry for its configured language-model route and records when a Needle/TRM specialist is unavailable. Tests are in `test/model-routing.test.ts` and `test/model-registry.test.ts`. The registry does not load models. A typed Node client (`src/needle-client.ts`) and private Python sidecar (`services/needle_adapter.py`, pinned `cactus-needle==3.0.1`) now define a non-executing Needle inference boundary, but the Agent does not yet call it and the sidecar is not deployed or tested against weights. TRM inference, browser runtime support, training, and benchmark validation are not yet implemented. See [docs/multimodel-topology.md](docs/multimodel-topology.md), [docs/needle-architecture.md](docs/needle-architecture.md), and [docs/verified-change-loop.md](docs/verified-change-loop.md).
+The conservative task-shape classifier is in `src/model-routing.ts`; `src/model-registry.ts` selects only explicitly available, capability-matched providers and provides a transparent general-model fallback. The current agent uses this registry for its configured language-model route and optional Needle structured-extraction route, and records when a specialist is unavailable. Tests are in `test/model-routing.test.ts` and `test/model-registry.test.ts`. The registry does not load models. A typed Node client (`src/needle-client.ts`) and private Python sidecar (`services/needle_adapter.py`, pinned `cactus-needle==3.0.1`) now define a non-executing Needle inference boundary, and the Agent now invokes it for bounded structured extraction when `NEEDLE_BASE_URL` is configured. The Agent validates returned data against the DARLE turn schema and rejects unsupported arithmetic or malformed results. The sidecar is still not deployed or tested against weights. TRM inference, browser runtime support, training, and benchmark validation are not yet implemented. See [docs/multimodel-topology.md](docs/multimodel-topology.md), [docs/needle-architecture.md](docs/needle-architecture.md), and [docs/verified-change-loop.md](docs/verified-change-loop.md).
 
 Upstream projects:
 - Needle: https://github.com/cactus-compute/needle
