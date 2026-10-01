@@ -118,22 +118,25 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(text, str) or not text.strip() or len(text) > MAX_TEXT:
             self._json(400, {"error": "invalid_text"})
             return
-        if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or not 1 <= max_tokens <= 512:
-            self._json(400, {"error": "invalid_max_new_tokens"})
+        if self.path == "/v1/complete":
+            if "schema" in data or isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or not 1 <= max_tokens <= 512:
+                self._json(400, {"error": "invalid_max_new_tokens_or_schema"})
+                return
+        elif "schema" not in data or "max_new_tokens" in data:
+            self._json(400, {"error": "invalid_extraction_request"})
             return
         try:
             with _inference_lock:
+                model = engine()
                 if self.path == "/v1/extract":
                     schema = data.get("schema")
                     if not isinstance(schema, dict) or schema.get("type") != "object" or len(json.dumps(schema)) > 4096:
                         self._json(400, {"error": "invalid_schema"})
                         return
-                    from needle import extract
-                    result = extract(text, schema, weights=WEIGHTS)
+                    result = model.extract(text, schema)
                     if hasattr(result, "model_dump"):
                         result = result.model_dump()
                 else:
-                    model = engine()
                     result = model.complete(text, max_new_tokens=max_tokens)
             if result is not None and not isinstance(result, dict):
                 raise RuntimeError("unexpected_model_response")
