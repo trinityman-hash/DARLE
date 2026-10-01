@@ -50,3 +50,10 @@ test('Needle extraction preserves documented null no-match result', async () => 
   const r = await completeNeedle({ base: 'http://localhost', timeoutMs: 1000 }, 'no-match', 'no matching fields', fetchFn, { type: 'object' });
   assert.equal(r.result, null);
 });
+
+test('Needle client normalizes cyclic and oversized schema failures', async () => {
+  const cfg = { base: 'http://localhost', timeoutMs: 1000 };
+  const cyclic: Record<string, unknown> = { type: 'object' }; cyclic.self = cyclic;
+  await assert.rejects(() => completeNeedle(cfg, 'cycle-1', 'text', fetch, cyclic), /invalid Needle schema/);
+  await assert.rejects(() => completeNeedle(cfg, 'large-1', 'text', fetch, { type: 'object', description: 'x'.repeat(4100) }), /invalid Needle schema/);
+});
