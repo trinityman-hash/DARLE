@@ -28,11 +28,11 @@ export function check(s: S, x: unknown, p = '$'): string | null {
   }
 }
 
-export function jsonSchema(s: S): object {
+export function jsonSchema(s: S): Record<string, unknown> {
   switch (s.t) {
-    case 'string': return { type: 'string', maxLength: s.max };
-    case 'bool': return { type: 'boolean' };
-    case 'array': return { type: 'array', items: jsonSchema(s.of), maxItems: s.max };
-    case 'object': return { type: 'object', properties: Object.fromEntries(Object.entries(s.f).map(([k, v]) => [k, jsonSchema(v)])), required: Object.keys(s.f), additionalProperties: false };
+    case 'string': return { type: 'string', maxLength: s.max } as Record<string, unknown>;
+    case 'bool': return { type: 'boolean' } as Record<string, unknown>;
+    case 'array': return { type: 'array', items: jsonSchema(s.of), maxItems: s.max } as Record<string, unknown>;
+    case 'object': return { type: 'object', properties: Object.fromEntries(Object.entries(s.f).map(([k, v]) => [k, jsonSchema(v)])), required: Object.keys(s.f), additionalProperties: false } as Record<string, unknown>;
   }
 }
