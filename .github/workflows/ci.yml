@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main, darle/needle-architecture]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --include=dev
+      - run: npm test
+      - run: npm run check
+      - run: npm run build
+
+  needle-adapter-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m py_compile services/needle_adapter.py
+      - run: python -m unittest discover -s services -p "test_*.py"
