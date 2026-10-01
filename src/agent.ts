@@ -6,6 +6,7 @@ import { calc } from './calc.ts';
 import { complete, type LlmConfig, type Msg } from './llm.ts';
 import { classifyWorkload, type Workload } from './model-routing.ts';
 import { selectModel } from './model-registry.ts';
+import { completeNeedle, type NeedleConfig } from './needle-client.ts';
 
 const CLAIM = obj({ s: str(40), rel: str(30), o: str(40), neg: bool() });
 export const TURN = obj({ answer: str(1500), claims: arr(CLAIM, 8), calc: str(120) });
@@ -19,8 +20,8 @@ const nz = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/
 class Bad extends Error {}
 
 export class Agent {
-  mem: Darle; llm: LlmConfig | null; fetchFn: typeof fetch; history: Msg[] = [];
-  constructor(mem: Darle, llm: LlmConfig | null, fetchFn: typeof fetch = fetch) { this.mem = mem; this.llm = llm; this.fetchFn = fetchFn; }
+  mem: Darle; llm: LlmConfig | null; needle: NeedleConfig | null; fetchFn: typeof fetch; history: Msg[] = []; private needleSequence = 0;
+  constructor(mem: Darle, llm: LlmConfig | null, fetchFn: typeof fetch = fetch, needle: NeedleConfig | null = null) { this.mem = mem; this.llm = llm; this.fetchFn = fetchFn; this.needle = needle; }
 
   async turn(text: string): Promise<TurnResult> {
     const ex = text.replace(/^(what is|what's|calculate|compute)\s+/i, '').replace(/[?=\s]+$/, '');
@@ -28,10 +29,14 @@ export class Agent {
       try { return this.done(text, { text: `${ex} = ${calc(ex)}`, route: 'calc', claims: [], proof: [], notes: [], tokens: 0 }); } catch { /* fall through */ }
     }
     const hint = classifyWorkload(text);
-    const providers = this.llm ? [{ id: 'configured-language', role: 'language' as const, endpoint: this.llm.base, model: this.llm.model, available: true, maxInputChars: 12000 }] : [];
+    const providers = [
+      ...(this.llm ? [{ id: 'configured-language', role: 'language' as const, endpoint: this.llm.base, model: this.llm.model, available: true, maxInputChars: 12000 }] : []),
+      ...(this.needle ? [{ id: 'configured-needle', role: 'needle' as const, endpoint: this.needle.base, model: 'needle', available: true, maxInputChars: 8192 }] : []),
+    ];
     const selection = selectModel(hint.workload, providers, text.length);
     const r = this.mem.chat(text);
     if (!r.miss || !selection.provider) return this.done(text, { text: r.text, route: 'memory', claims: [], proof: r.proof, notes: selection.reason === 'no-eligible-provider' && hint.workload !== 'deterministic' ? [`workload=${hint.workload}; no eligible model provider configured`] : [], tokens: 0, touched: r.touched });
+    if (selection.provider.role === 'needle') return this.done(text, await this.viaNeedle(text, hint.workload));
     return this.done(text, await this.viaModel(text, hint.workload, selection.reason));
   }
   private done(q: string, r: TurnResult): TurnResult {
@@ -53,6 +58,27 @@ export class Agent {
     if (!f.s || !f.rel || !f.o) return { fact, status: 'unknown', proof: [] };
     const r = this.mem.verify(f); return { fact, status: r.v, proof: r.proof };
   }
+  private async viaNeedle(text: string, workload: Workload): Promise<TurnResult> {
+    const notes = [`workload=${workload}; configured Needle structured extraction`];
+    try {
+      const requestId = `darle-${++this.needleSequence}`;
+      const response = await completeNeedle(this.needle!, requestId, text, this.fetchFn, SCHEMA);
+      if (response.result === null) return { text: 'Needle found no structured result; no answer was inferred.', route: 'none', claims: [], proof: [], notes: [...notes, 'needle-no-match'], tokens: 0 };
+      const error = check(TURN, response.result);
+      if (error) return { text: 'Needle returned an invalid structured result; no answer was accepted.', route: 'none', claims: [], proof: [], notes: [...notes, 'needle-invalid-output: ' + error], tokens: 0 };
+      const out = response.result as Turn;
+      if (out.calc.trim()) {
+        try { const value = String(calc(out.calc)); notes.push(`calc ${out.calc} = ${value}`); }
+        catch { return { text: 'Needle requested an invalid calculation; no answer was accepted.', route: 'none', claims: [], proof: [], notes: [...notes, 'needle-calc-rejected'], tokens: 0 }; }
+      }
+      const claims = out.claims.map(c => this.verifyClaim(c));
+      if (claims.some(c => c.status === 'contradicted')) return { text: 'Needle output conflicts with verified memory, so I will not use it.', route: 'none', claims, proof: claims.flatMap(c => c.proof), notes: [...notes, 'needle-claim-conflict'], tokens: 0 };
+      return { text: out.answer, route: 'model', claims, proof: [], notes: [...notes, `needle-model=${response.model}`], tokens: 0 };
+    } catch (e) {
+      return { text: `The structured model is unavailable: ${(e as Error).message}`, route: 'none', claims: [], proof: [], notes, tokens: 0 };
+    }
+  }
+
   private async viaModel(text: string, workload: Workload, selectionReason: string): Promise<TurnResult> {
     const facts = this.recall(text), notes: string[] = [];
     if (selectionReason !== 'configured-provider') notes.push(`workload=${workload}; ${selectionReason}; using configured general language model`);
