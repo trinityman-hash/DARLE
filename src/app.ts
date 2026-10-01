@@ -33,7 +33,7 @@ function renderTrace(r: Turn) {
 function show(r: Turn) {
   const t = el('article', 'turn darle'), body = el('div', 'body'), meta = el('div', 'meta');
   meta.append(el('span', 'chip r-' + r.route, ROUTE[r.route]));
-  if (r.claims.length) { const ok = r.claims.filter(c => c.status === 'supported').length, bad = r.claims.filter(c => c.status === 'contradicted').length; meta.append(el('span', 'chip', \`\${ok}/\${r.claims.length} supported\${bad ? \` · \${bad} conflict\` : ''}\`)); }
+  if (r.claims.length) { const ok = r.claims.filter(c => c.status === 'supported').length, bad = r.claims.filter(c => c.status === 'contradicted').length; meta.append(el('span', 'chip', `${ok}/${r.claims.length} supported${bad ? ` · ${bad} conflict` : ''}`)); }
   body.append(el('p', 'txt', r.text), meta); t.append(el('span', 'who', 'DARLE'), body); add(t); renderTrace(r);
 }
 function user(text: string) { const t = el('article', 'turn you'), body = el('div', 'body'); t.append(el('span', 'who', 'YOU'), body); body.append(el('p', 'txt', text)); add(t); }
@@ -55,7 +55,7 @@ async function boot() {
   try {
     const r = await fetch('/api/state?session=' + encodeURIComponent(session), { headers: { accept: 'application/json' }, credentials: 'same-origin' }); if (!r.ok) throw new Error(String(r.status));
     const d = await r.json(); stats(d.stats); draw(unpack(d.bits)); modeEl.textContent = 'SERVER / CONNECTED'; send.disabled = false;
-    engine.textContent = d.llm.configured ? \`Attached model: \${d.llm.model}. Output is typed; supported claims and calculations are checked.\` : 'No model attached. DARLE can answer from stored facts and exact calculation only.';
+    engine.textContent = d.llm.configured ? `Attached model: ${d.llm.model}. Output is typed; supported claims and calculations are checked.` : 'No model attached. DARLE can answer from stored facts and exact calculation only.';
   } catch { startLocal(); }
 }
 async function submit() {
@@ -74,6 +74,6 @@ box.addEventListener('input', () => { $('#counter')!.textContent = box.value.len
 box.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(); } });
 $('#clear')!.addEventListener('click', () => { log.replaceChildren(); trace.replaceChildren(el('p', 'note', 'Nothing inspected yet.')); const empty = el('div', 'empty'); empty.id = 'empty'; empty.append(el('p', '', 'Conversation cleared from this screen. Session memory remains active until it expires or you start a new session.')); log.append(empty); });
 $('#new-session')!.addEventListener('click', () => { const id = crypto.randomUUID(); try { sessionStorage.setItem('darle', id); } catch { /* session will be regenerated on reload */ } location.reload(); });
-$('#export')!.addEventListener('click', () => { const lines = [...log.querySelectorAll<HTMLElement>('.turn')].map(t => (t.classList.contains('you') ? 'YOU' : 'DARLE') + '\\n' + (t.querySelector('.txt')?.textContent ?? '')).join('\\n\\n'); if (!lines) return; const a = document.createElement('a'), url = URL.createObjectURL(new Blob([lines], { type: 'text/plain;charset=utf-8' })); a.href = url; a.download = 'darle-conversation.txt'; a.click(); URL.revokeObjectURL(url); });
+$('#export')!.addEventListener('click', () => { const lines = [...log.querySelectorAll<HTMLElement>('.turn')].map(t => (t.classList.contains('you') ? 'YOU' : 'DARLE') + '\n' + (t.querySelector('.txt')?.textContent ?? '')).join('\n\n'); if (!lines) return; const a = document.createElement('a'), url = URL.createObjectURL(new Blob([lines], { type: 'text/plain;charset=utf-8' })); a.href = url; a.download = 'darle-conversation.txt'; a.click(); URL.revokeObjectURL(url); });
 document.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach(b => b.addEventListener('click', () => { box.value = b.dataset.ex!; $('#counter')!.textContent = box.value.length + ' / 500'; box.focus(); }));
 void boot();
