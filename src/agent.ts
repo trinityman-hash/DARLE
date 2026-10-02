@@ -28,7 +28,7 @@ export class Agent {
     }
     const r = this.mem.chat(text);
     if (!r.miss || (!this.llm && !this.needleBase)) return this.done(text, { text: r.text, route: 'memory', claims: [], proof: r.proof, notes: [], tokens: 0, touched: r.touched });
-    if (this.needleBase && /\b(extract|parse|classify|categorize|structured|json|which tool|route this)\b/i.test(text)) {
+    if (this.needleBase) {
       const small = await this.viaNeedle(text);
       if (small) return this.done(text, small);
     }
