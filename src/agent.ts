@@ -13,7 +13,7 @@ export interface TurnResult { text: string; route: 'memory' | 'calc' | 'model' |
 
 const MAX_TRIES = 4;
 const SCHEMA: Record<string, unknown> = jsonSchema(TURN) as Record<string, unknown>;
-const SYSTEM = `You are the language layer of DARLE. Reply with JSON only. "answer": a short, direct reply. "claims": every checkable fact you assert as {s, rel, o, neg}; rel must be one of: ${REL[...]
+const SYSTEM = `You are the language layer of DARLE. Reply with JSON only. "answer": a short, direct reply. "claims": every checkable fact you assert as {s, rel, o, neg}; rel must be one of: ${RELS.join(", ")}. Use only facts in KNOWN FACTS as verified; do not invent memory. Put arithmetic expressions in "calc" and leave "answer" brief. If no checkable facts, use an empty claims array. Schema: {"answer":string,"claims":[{"s":string,"rel":string,"o":string,"neg":boolean}],"calc":string}.`;
 const nz = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(the|a|an) /, '');
 class Bad extends Error {}
 
@@ -68,15 +68,15 @@ export class Agent {
       }
       if (out.calc.trim()) {
         let v = ''; try { v = String(calc(out.calc)); notes.push(`calc ${out.calc} = ${v}`); } catch (e) { notes.push(`calc rejected: ${(e as Error).message}`); }
-        msgs.push({ role: 'assistant', content: JSON.stringify(out) }, { role: 'user', content: v ? `calc result: ${out.calc} = ${v}. Give the final answer now and set calc to "".` : 'calc failed:[...]
+        msgs.push({ role: "assistant", content: JSON.stringify(out) }, { role: "user", content: v ? `calc result: ${out.calc} = ${v}. Give the final answer now and set calc to "".` : `calc failed. Do not retry that calculation; provide a concise answer without it and set calc to "".` });
         continue;
       }
       const claims = out.claims.map(c => this.verifyClaim(c)), bad = claims.filter(c => c.status === 'contradicted');
       last = claims;
       if (!bad.length) return { text: out.answer, route: 'model', claims, proof: [], notes, tokens };
       notes.push(`retry: ${bad.length} claim(s) contradicted memory`);
-      msgs.push({ role: 'assistant', content: JSON.stringify(out) }, { role: 'user', content: `Your claims conflict with verified memory: ${bad.map(b => `"${b.fact}" but memory has: ${b.proof[0] ?[...]
+      msgs.push({ role: "assistant", content: JSON.stringify(out) }, { role: "user", content: `Your claims conflict with verified memory: ${bad.map(b => `"${b.fact}" but memory has: ${b.proof[0] ?? "no matching verified fact"}`).join("; ")}. Revise the answer and claims to avoid contradicted statements.` });
     }
-    return { text: 'I could not produce an answer that agrees with what I have verified, so I am not going to guess.', route: 'none', claims: last, proof: last.flatMap(c => c.proof), notes, tokens[...]
+    return { text: 'I could not produce an answer that agrees with what I have verified, so I am not going to guess.', route: 'none', claims: last, proof: last.flatMap(c => c.proof), notes, tokens };
   }
 }
