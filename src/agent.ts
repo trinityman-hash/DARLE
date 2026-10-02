@@ -12,13 +12,15 @@ export interface ClaimStatus { fact: string; status: 'supported' | 'contradicted
 export interface TurnResult { text: string; route: 'memory' | 'calc' | 'model' | 'none'; claims: ClaimStatus[]; proof: string[]; notes: string[]; tokens: number; touched?: string }
 
 const MAX_TRIES = 4;
+// Hosts such as Render cut requests near 100 s, so one turn gets a bounded budget across all retries.
+const BUDGET_MS = 80_000;
 const SCHEMA: Record<string, unknown> = jsonSchema(TURN) as Record<string, unknown>;
-const SYSTEM = `You are the language layer of DARLE. Reply with JSON only. "answer": a short, direct reply. "claims": every checkable fact you assert as {s, rel, o, neg}; rel must be one of: ${REL[...]
+const SYSTEM = `You are the language layer of DARLE. Reply with JSON only. "answer": a short, direct reply. "claims": every checkable fact you assert as {s, rel, o, neg}; rel must be one of: ${RELS.join(', ')}. "calc": an arithmetic expression for exact evaluation, or "" when none is needed. Set neg to true for a negated claim. Never invent facts; leave claims empty when nothing checkable is asserted.`;
 const nz = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(the|a|an) /, '');
 class Bad extends Error {}
 
 export class Agent {
-  mem: Darle; llm: LlmConfig | null; fetchFn: typeof fetch; history: Msg[] = [];
+  mem: Darle; llm: LlmConfig | null; fetchFn: typeof fetch; history: Msg[] = []; budgetMs = BUDGET_MS;
   constructor(mem: Darle, llm: LlmConfig | null, fetchFn: typeof fetch = fetch) { this.mem = mem; this.llm = llm; this.fetchFn = fetchFn; }
 
   async turn(text: string): Promise<TurnResult> {
@@ -53,10 +55,13 @@ export class Agent {
     const facts = this.recall(text), notes: string[] = [];
     const msgs: Msg[] = [{ role: 'system', content: SYSTEM + (facts.length ? '\nKNOWN FACTS:\n' + facts.join('\n') : '') }, ...this.history.slice(-6), { role: 'user', content: text }];
     let tokens = 0, last: ClaimStatus[] = [];
+    const t0 = Date.now();
     for (let k = 0; k < MAX_TRIES; k++) {
+      const left = this.budgetMs - (Date.now() - t0);
+      if (left < 250) { notes.push('time budget used up'); break; }
       let out: Turn;
       try {
-        const r = await complete(this.llm!, msgs, SCHEMA, this.fetchFn); tokens += r.tokens;
+        const r = await complete({ ...this.llm!, timeoutMs: Math.min(this.llm!.timeoutMs, left) }, msgs, SCHEMA, this.fetchFn); tokens += r.tokens;
         let j: unknown; try { j = JSON.parse(r.text); } catch { throw new Bad('not valid JSON'); }
         const e = check(TURN, j); if (e) throw new Bad(e);
         out = j as Turn;
@@ -68,15 +73,15 @@ export class Agent {
       }
       if (out.calc.trim()) {
         let v = ''; try { v = String(calc(out.calc)); notes.push(`calc ${out.calc} = ${v}`); } catch (e) { notes.push(`calc rejected: ${(e as Error).message}`); }
-        msgs.push({ role: 'assistant', content: JSON.stringify(out) }, { role: 'user', content: v ? `calc result: ${out.calc} = ${v}. Give the final answer now and set calc to "".` : 'calc failed:[...]
+        msgs.push({ role: 'assistant', content: JSON.stringify(out) }, { role: 'user', content: v ? `calc result: ${out.calc} = ${v}. Give the final answer now and set calc to "".` : 'calc failed: the expression was rejected. Answer without calculation and set calc to "".' });
         continue;
       }
       const claims = out.claims.map(c => this.verifyClaim(c)), bad = claims.filter(c => c.status === 'contradicted');
       last = claims;
       if (!bad.length) return { text: out.answer, route: 'model', claims, proof: [], notes, tokens };
       notes.push(`retry: ${bad.length} claim(s) contradicted memory`);
-      msgs.push({ role: 'assistant', content: JSON.stringify(out) }, { role: 'user', content: `Your claims conflict with verified memory: ${bad.map(b => `"${b.fact}" but memory has: ${b.proof[0] ?[...]
+      msgs.push({ role: 'assistant', content: JSON.stringify(out) }, { role: 'user', content: `Your claims conflict with verified memory: ${bad.map(b => `"${b.fact}" but memory has: ${b.proof[0] ?? 'a stored fact'}`).join('; ')}. Correct the answer and its claims.` });
     }
-    return { text: 'I could not produce an answer that agrees with what I have verified, so I am not going to guess.', route: 'none', claims: last, proof: last.flatMap(c => c.proof), notes, tokens[...]
+    return { text: 'I could not produce an answer that agrees with what I have verified, so I am not going to guess.', route: 'none', claims: last, proof: last.flatMap(c => c.proof), notes, tokens };
   }
 }
