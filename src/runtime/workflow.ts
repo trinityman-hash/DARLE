@@ -71,6 +71,16 @@ export async function executeWorkflow(
       steps.push({ stepId: step.id, status: 'failed', error: 'connector action is not registered' });
       return { workflowId: w.id, runId: options.runId, status: 'failed', steps };
     }
+    const required = action.requiredPermissions ?? [];
+    if (!Array.isArray(required) || required.some(permission => typeof permission !== 'string' || !NAME.test(permission))) {
+      steps.push({ stepId: step.id, status: 'failed', error: 'connector permission declaration is invalid' });
+      return { workflowId: w.id, runId: options.runId, status: 'failed', steps };
+    }
+    const grants = options.grants ?? new Set<string>();
+    if (required.some(permission => !grants.has(permission))) {
+      steps.push({ stepId: step.id, status: 'failed', error: 'required connector permission was not granted' });
+      return { workflowId: w.id, runId: options.runId, status: 'failed', steps };
+    }
     const controller = new AbortController();
     const abort = () => controller.abort();
     signal.addEventListener('abort', abort, { once: true });
