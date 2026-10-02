@@ -39,7 +39,7 @@ async function boot() {
   try {
     const r = await fetch('/api/state?session=' + encodeURIComponent(session), { headers: { accept: 'application/json' }, credentials: 'same-origin' }); if (!r.ok) throw new Error(String(r.status));
     const d = await r.json(); stats(d.stats); draw(unpack(d.bits)); modeEl.textContent = 'SERVER / REACHABLE'; send.disabled = false;
-    engine.textContent = [d.llm.configured ? `Language model configured: ${d.llm.model} (not live-tested)` : 'Language model not configured', d.needle?.ready ? 'Needle 2 responding' : 'Needle 2 unavailable'].join(' · ');
+    engine.textContent = [d.llm.configured ? `Language model configured: ${d.llm.model} (not live-tested)` : 'Language model not configured', d.needle?.ready ? 'Needle service online · inference unverified' : 'Needle 2 unavailable'].join(' · ');
   } catch { startLocal(); }
 }
 async function submit() {
