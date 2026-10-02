@@ -9,7 +9,7 @@ const CLAIM = obj({ s: str(40), rel: str(30), o: str(40), neg: bool() });
 export const TURN = obj({ answer: str(1500), claims: arr(CLAIM, 8), calc: str(120) });
 type Turn = I<typeof TURN>;
 export interface ClaimStatus { fact: string; status: 'supported' | 'contradicted' | 'unknown'; proof: string[] }
-export interface TurnResult { text: string; route: 'memory' | 'calc' | 'model' | 'none'; claims: ClaimStatus[]; proof: string[]; notes: string[]; tokens: number; touched?: string }
+export interface TurnResult { text: string; route: 'memory' | 'calc' | 'needle' | 'model' | 'none'; claims: ClaimStatus[]; proof: string[]; notes: string[]; tokens: number; touched?: string }
 
 const MAX_TRIES = 4;
 const SCHEMA: Record<string, unknown> = jsonSchema(TURN) as Record<string, unknown>;
@@ -27,8 +27,13 @@ export class Agent {
       try { return this.done(text, { text: `${ex} = ${calc(ex)}`, route: 'calc', claims: [], proof: [], notes: [], tokens: 0 }); } catch { /* fall through */ }
     }
     const r = this.mem.chat(text);
-    if (!r.miss || !this.llm) return this.done(text, { text: r.text, route: 'memory', claims: [], proof: r.proof, notes: [], tokens: 0, touched: r.touched });
-    return this.done(text, await this.viaModel(text));
+    if (!r.miss || (!this.llm && !this.needleBase)) return this.done(text, { text: r.text, route: 'memory', claims: [], proof: r.proof, notes: [], tokens: 0, touched: r.touched });
+    if (this.needleBase && /\\b(extract|parse|classify|categorize|structured|json|which tool|route this)\\b/i.test(text)) {
+      const small = await this.viaNeedle(text);
+      if (small) return this.done(text, small);
+    }
+    if (this.llm) return this.done(text, await this.viaModel(text));
+    return this.done(text, { text: 'This request needs the language model; the local specialist handles structured tasks.', route: 'none', claims: [], proof: [], notes: [], tokens: 0 });
   }
   private done(q: string, r: TurnResult): TurnResult {
     this.history.push({ role: 'user', content: q }, { role: 'assistant', content: r.text });
@@ -49,6 +54,27 @@ export class Agent {
     if (!f.s || !f.rel || !f.o) return { fact, status: 'unknown', proof: [] };
     const r = this.mem.verify(f); return { fact, status: r.v, proof: r.proof };
   }
+
+  private async viaNeedle(text: string): Promise<TurnResult | null> {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
+    try {
+      const r = await this.fetchFn(this.needleBase! + '/complete', {
+        method: 'POST', signal: ctl.signal,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ query: text, schema: SCHEMA }),
+      });
+      if (!r.ok) throw new Error('Needle returned HTTP ' + r.status);
+      const payload: any = await r.json(), e = check(TURN, payload?.turn);
+      if (e || !payload?.turn) return null;
+      const out = payload.turn as Turn, claims = out.claims.map(c => this.verifyClaim(c));
+      if (claims.some(c => c.status === 'contradicted')) return null;
+      const answer = out.calc.trim() ? (() => { try { return out.answer + (out.answer ? ' ' : '') + String(calc(out.calc)); } catch { return out.answer; } })() : out.answer;
+      return { text: answer, route: 'needle', claims, proof: [], notes: [], tokens: 0 };
+    } catch {
+      return null;
+    } finally { clearTimeout(timer); }
+  }
+
   private async viaModel(text: string): Promise<TurnResult> {
     const facts = this.recall(text), notes: string[] = [];
     const msgs: Msg[] = [{ role: 'system', content: SYSTEM + (facts.length ? '\nKNOWN FACTS:\n' + facts.join('\n') : '') }, ...this.history.slice(-6), { role: 'user', content: text }];
