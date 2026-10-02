@@ -65,7 +65,7 @@ export class Agent {
       });
       if (!r.ok) throw new Error('Needle returned HTTP ' + r.status);
       const payload: any = await r.json(), e = check(TURN, payload?.turn);
-      if (e || !payload?.turn) return null;
+      if (e || !payload?.turn || typeof payload.confidence !== 'number' || payload.confidence < 0.65) return null;
       const out = payload.turn as Turn, claims = out.claims.map(c => this.verifyClaim(c));
       if (claims.some(c => c.status === 'contradicted')) return null;
       const answer = out.calc.trim() ? (() => { try { return out.answer + (out.answer ? ' ' : '') + String(calc(out.calc)); } catch { return out.answer; } })() : out.answer;
