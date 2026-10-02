@@ -17,6 +17,12 @@ const H = {
 };
 interface Sess { a: Agent; t: number; q: Promise<unknown> }
 const sessions = new Map<string, Sess>(), hits = new Map<string, number[]>();
+async function needleReady(): Promise<boolean> {
+  if (!NEEDLE) return false;
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 1500);
+  try { const r = await fetch(NEEDLE + '/healthz', { signal: ctl.signal }); return r.ok; }
+  catch { return false; } finally { clearTimeout(timer); }
+}
 const json = (res: ServerResponse, code: number, b: unknown) => { res.writeHead(code, { ...H, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }).end(JSON.stringify(b)); };
 const pack = (b: Uint8Array | null) => { if (!b) return ''; const o = Buffer.alloc(b.length >> 3); for (let j = 0; j < b.length; j++) if (b[j]) o[j >> 3] |= 1 << (j & 7); return o.toString('base64'); };
 function clientIp(req: IncomingMessage): string {
@@ -44,7 +50,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
   if (limited(req)) return json(res, 429, { error: 'too many requests' });
   if (url.pathname === '/api/state' && req.method === 'GET') {
     const id = url.searchParams.get('session') ?? ''; if (!ID.test(id)) return json(res, 400, { error: 'bad session' });
-    const s = session(id); return json(res, 200, { stats: s.a.mem.stats(), bits: pack(s.a.mem.bits('france')), llm: { configured: !!LLM, model: LLM?.model ?? null }, needle: { configured: !!NEEDLE } });
+    const s = session(id), ready = await needleReady(); return json(res, 200, { stats: s.a.mem.stats(), bits: pack(s.a.mem.bits('france')), llm: { configured: !!LLM, model: LLM?.model ?? null }, needle: { configured: !!NEEDLE, ready } });
   }
   if (url.pathname === '/api/chat' && req.method === 'POST') {
     const j = await readBody(req, res); if (j === null) return;
