@@ -34,3 +34,49 @@ test('aborts before executing when caller cancels', async () => {
   const result = await executeWorkflow(wf, registry, { runId: 'run-4', signal: controller.signal });
   assert.equal(result.status, 'failed'); assert.equal(result.steps.length, 0);
 });
+
+test('freezes nested input and isolates it from the caller workflow', async () => {
+  const input = { nested: { value: 'original' } };
+  const workflow: Workflow = { version: 1, id: 'immutable', steps: [{ id: 'only', connector: 'core', action: 'inspect', input }] };
+  let frozen = false;
+  const actions = new Map([['core', new Map([['inspect', async (data: Readonly<Record<string, import('../src/runtime/workflow.ts').Json>>) => {
+    frozen = Object.isFrozen(data) && Object.isFrozen(data.nested);
+    return (data.nested as Record<string, import('../src/runtime/workflow.ts').Json>).value;
+  }]])]]);
+  const result = await executeWorkflow(workflow, actions, { runId: 'run-5' });
+  assert.equal(frozen, true);
+  assert.equal(input.nested.value, 'original');
+  assert.equal(result.status, 'succeeded');
+});
+test('cancels an active action and records failure', async () => {
+  const controller = new AbortController();
+  let markStarted!: () => void;
+  const started = new Promise<void>(resolve => { markStarted = resolve; });
+  const actions = new Map([['core', new Map([['echo', async (_input: Readonly<Record<string, import('../src/runtime/workflow.ts').Json>>, context: import('../src/runtime/workflow.ts').RunContext) => {
+    markStarted();
+    return new Promise<import('../src/runtime/workflow.ts').Json>(resolve => context.signal.addEventListener('abort', () => resolve(null), { once: true }));
+  }]])]]);
+  const running = executeWorkflow(wf, actions, { runId: 'run-6', signal: controller.signal });
+  await started;
+  controller.abort();
+  const result = await running;
+  assert.equal(result.status, 'failed');
+  assert.match(result.steps[0].error ?? '', /cancelled/);
+});
+test('times out a stalled action and never starts the next step', async () => {
+  let calls = 0;
+  const actions = new Map([['core', new Map([['echo', async () => {
+    calls++;
+    return new Promise<import('../src/runtime/workflow.ts').Json>(() => {});
+  }]])]]);
+  const result = await executeWorkflow(wf, actions, { runId: 'run-7', stepTimeoutMs: 10 });
+  assert.equal(result.status, 'failed');
+  assert.match(result.steps[0].error ?? '', /timed out/);
+  assert.equal(calls, 1);
+});
+test('rejects non-JSON connector output', async () => {
+  const actions = new Map([['core', new Map([['echo', async () => Infinity as import('../src/runtime/workflow.ts').Json]])]]);
+  const result = await executeWorkflow(wf, actions, { runId: 'run-8' });
+  assert.equal(result.status, 'failed');
+  assert.match(result.steps[0].error ?? '', /invalid or oversized JSON/);
+});
