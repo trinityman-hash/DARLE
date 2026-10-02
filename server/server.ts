@@ -7,7 +7,7 @@ import { Agent } from '../src/agent.ts';
 import { llmFromEnv } from '../src/llm.ts';
 
 const PUB = join(process.cwd(), 'public'), PORT = Number(process.env.PORT ?? 8080), MAX = 64, TTL = 20 * 60e3, PER_MIN = 40, ID = /^[\w-]{8,64}$/;
-const LLM = llmFromEnv(process.env), NEEDLE = process.env.NEEDLE_BASE_URL || null;
+const LLM = llmFromEnv(process.env), NEEDLE = process.env.NEEDLE_BASE_URL?.trim() || 'http://127.0.0.1:8765';
 const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.svg': 'image/svg+xml' };
 const H = {
   'content-security-policy': "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'",
