@@ -62,7 +62,8 @@ async function submit() {
   const t = box.value.trim(); if (!t || send.disabled) return; send.disabled = true; user(t); box.value = ''; $('#counter')!.textContent = '0 / 500';
   if (mode === 'server') {
     try {
-      const r = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ session, text: t }) });
+      const r = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ session, text: t }), signal: AbortSignal.timeout(90_000) });
+      if (r.status === 429) { add(el('p', 'note', 'Too many requests. Wait a moment, then send again.')); send.disabled = false; return; }
       if (!r.ok) throw new Error(String(r.status));
       const d = await r.json(); stats(d.stats); draw(unpack(d.bits)); show(d.reply); send.disabled = false; box.focus(); return;
     } catch { add(el('p', 'note', 'Server connection lost. Switching to limited browser-only mode; server memory is not transferred.')); queued = t; startLocal(); return; }
