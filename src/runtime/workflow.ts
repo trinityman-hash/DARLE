@@ -77,8 +77,12 @@ export async function executeWorkflow(
       steps.push({ stepId: step.id, status: 'failed', error: 'connector permission declaration is invalid' });
       return { workflowId: w.id, runId: options.runId, status: 'failed', steps };
     }
-    const grants = options.grants ?? new Set<string>();
-    if (required.some(permission => !grants.has(permission))) {
+    const grants = options.grants ?? [];
+    if (!Array.isArray(grants) || grants.length > 128 || grants.some(grant => !grant || !ID.test(grant.workflowId) || !NAME.test(grant.connector) || !NAME.test(grant.action) || !NAME.test(grant.permission))) {
+      steps.push({ stepId: step.id, status: 'failed', error: 'permission grant is invalid' });
+      return { workflowId: w.id, runId: options.runId, status: 'failed', steps };
+    }
+    if (required.some(permission => !grants.some(grant => grant.workflowId === w.id && grant.connector === step.connector && grant.action === step.action && grant.permission === permission))) {
       steps.push({ stepId: step.id, status: 'failed', error: 'required connector permission was not granted' });
       return { workflowId: w.id, runId: options.runId, status: 'failed', steps };
     }
