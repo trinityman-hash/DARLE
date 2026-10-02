@@ -73,6 +73,18 @@ test('invalid model output is rejected and re-asked', async () => {
   const r = await a.turn('Tell me something'); m.close();
   assert.equal(r.text, 'ok'); assert.equal(m.calls.length, 4); assert.equal(r.notes.filter(n => n.startsWith('invalid output')).length, 3);
 });
+
+test('Needle handles explicit structured requests without executing tools', async () => {
+  const fetchFn: typeof fetch = async () => new Response(JSON.stringify({
+    turn: turn('Classified as a fact.', [claim('whale', 'is', 'animal')]), confidence: 0.9,
+  }), { status: 200, headers: { 'content-type': 'application/json' } });
+  const a = new Agent(seeded(), null, fetchFn, 'http://needle.local');
+  const r = await a.turn('Classify this statement: a whale is an animal');
+  assert.equal(r.route, 'needle');
+  assert.equal(r.text, 'Classified as a fact.');
+  assert.equal(r.claims[0].status, 'unknown');
+});
+
 test('an unreachable model degrades gracefully; memory still works', async () => {
   const a = new Agent(seeded(), { base: 'http://127.0.0.1:1/v1', model: 'x', timeoutMs: 1500 });
   const r = await a.turn('Tell me about Paris'); assert.equal(r.route, 'none'); assert.match(r.text, /unavailable/);
