@@ -76,7 +76,7 @@ test('invalid model output is rejected and re-asked', async () => {
 
 test('Needle handles explicit structured requests without executing tools', async () => {
   const fetchFn: typeof fetch = async () => new Response(JSON.stringify({
-    turn: turn('Classified as a fact.', [claim('whale', 'is', 'animal')]), confidence: 0.9,
+    turn: turn('Classified as a fact.', [claim('gizmo', 'lives in', 'mars')]), confidence: 0.9,
   }), { status: 200, headers: { 'content-type': 'application/json' } });
   const a = new Agent(seeded(), null, fetchFn, 'http://needle.local');
   const r = await a.turn('Classify this statement: a whale is an animal');
