@@ -1,9 +1,9 @@
 interface Claim { fact: string; status: 'supported' | 'contradicted' | 'unknown'; proof: string[] }
-interface Turn { text: string; route: 'memory' | 'calc' | 'model' | 'none'; claims: Claim[]; proof: string[]; notes: string[]; tokens: number }
+interface Turn { text: string; route: 'memory' | 'calc' | 'needle' | 'model' | 'none'; claims: Claim[]; proof: string[]; notes: string[]; tokens: number }
 const $ = <T extends HTMLElement>(s: string) => document.querySelector(s) as T;
 const log = $('#log'), form = $<HTMLFormElement>('#form'), box = $<HTMLTextAreaElement>('#prompt'), send = $<HTMLButtonElement>('#send'), modeEl = $('#mode'), trace = $('#trace'), engine = $('#engine');
 const fmt = new Intl.NumberFormat('en');
-const ROUTE = { memory: 'memory', calc: 'exact calculation', model: 'language model', none: 'declined' } as const;
+const ROUTE = { memory: 'memory', calc: 'exact calculation', needle: 'Needle specialist', model: 'language model', none: 'declined' } as const;
 const LABEL = { supported: 'supported', contradicted: 'conflict', unknown: 'unverified' } as const;
 const el = (tag: string, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = text; return e; };
 const add = (n: HTMLElement) => { $('#empty')?.remove(); log.append(n); log.scrollTop = log.scrollHeight; };
@@ -55,7 +55,7 @@ async function boot() {
   try {
     const r = await fetch('/api/state?session=' + encodeURIComponent(session), { headers: { accept: 'application/json' }, credentials: 'same-origin' }); if (!r.ok) throw new Error(String(r.status));
     const d = await r.json(); stats(d.stats); draw(unpack(d.bits)); modeEl.textContent = 'SERVER / CONNECTED'; send.disabled = false;
-    engine.textContent = d.llm.configured ? `Attached model: ${d.llm.model}. Output is typed; supported claims and calculations are checked.` : 'No model attached. DARLE can answer from stored facts and exact calculation only.';
+    engine.textContent = [d.llm.configured ? `Language: ${d.llm.model}` : '', d.needle?.configured ? 'Needle 2: local specialist' : ''].filter(Boolean).join(' · ') || 'No model attached. Memory and exact calculation remain available.';
   } catch { startLocal(); }
 }
 async function submit() {
