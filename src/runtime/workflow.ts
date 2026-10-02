@@ -7,7 +7,7 @@ export type Json = null | boolean | number | string | Json[] | { [key: string]: 
 export interface Step { id: string; connector: string; action: string; input: Record<string, Json> }
 export interface Workflow { version: 1; id: string; steps: Step[] }
 export interface RunContext { workflowId: string; runId: string; stepId: string; signal: AbortSignal }
-export type Action = (input: Readonly<Record<string, Json>>, context: RunContext) => Promise<Json>;
+export type Action = ((input: Readonly<Record<string, Json>>, context: RunContext) => Promise<Json>) & { readonly requiredPermissions?: readonly string[] };
 export type ConnectorRegistry = ReadonlyMap<string, ReadonlyMap<string, Action>>;
 export interface StepResult { stepId: string; status: 'succeeded' | 'failed'; output?: Json; error?: string }
 export interface RunResult { workflowId: string; runId: string; status: 'succeeded' | 'failed'; steps: StepResult[] }
@@ -58,7 +58,7 @@ export function validateWorkflow(value: unknown): Workflow {
 export async function executeWorkflow(
   workflow: Workflow,
   registry: ConnectorRegistry,
-  options: { runId: string; signal?: AbortSignal; stepTimeoutMs?: number }
+  options: { runId: string; signal?: AbortSignal; stepTimeoutMs?: number; grants?: ReadonlySet<string> }
 ): Promise<RunResult> {
   const w = validateWorkflow(workflow), steps: StepResult[] = [];
   const timeout = options.stepTimeoutMs ?? 15_000;
