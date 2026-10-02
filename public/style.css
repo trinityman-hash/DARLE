@@ -8,3 +8,22 @@
 .method{padding:clamp(4rem,8vw,7rem) var(--pad);display:grid;grid-template-columns:1fr 1.2fr;gap:5vw;border-bottom:1px solid var(--ink)}.method-head .section-no{margin-bottom:1.7rem}.method-head>p:last-child{font-size:13px;color:var(--muted);max-width:300px}.method-list article{display:grid;grid-template-columns:42px 1fr 20px;gap:1rem;padding:1.15rem 0;border-top:1px solid var(--ink)}.method-id,.method-mark{font:10px var(--mono);color:var(--red)}.method-list h3{font:700 10px var(--mono);letter-spacing:.1em;margin:0 0 .35rem}.method-list p{font-size:12px;color:#5f5d57;max-width:460px}.method-mark{justify-self:end}
 .limits{grid-template-columns:1fr 2fr 1fr;align-items:start}.limits .text-link{display:inline-block;margin-top:1.5rem}.limits-note{align-self:center;justify-self:end;border-left:2px solid var(--red);padding:.2rem 0 .2rem .8rem;display:flex;gap:.6rem;align-items:flex-start}.limits-note p{font:700 8px/1.5 var(--mono);letter-spacing:.06em}footer{padding:1rem var(--pad);display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font:8px var(--mono);letter-spacing:.08em;color:var(--muted)}.footer-brand{color:var(--ink);font:900 12px var(--sans);letter-spacing:-.07em}.footer-brand .brand-mark{width:22px;height:22px}
 @keyframes in{from{opacity:0;transform:translateY(4px)}}@media(max-width:1000px){.hero-art{right:-7%;opacity:.45}.hero-copy{max-width:720px}.shell{grid-template-columns:minmax(0,1fr) 270px}.intro,.limits{grid-template-columns:1fr 2fr}.intro-stamp,.limits-note{display:none}}@media(max-width:760px){.bar{height:58px;gap:1rem}.bar-note{display:none}.bar nav{gap:.9rem}.mode{font-size:8px}.hero{padding-top:4rem}.hero h1{font-size:clamp(5rem,18vw,9rem);margin-top:2.3rem}.hero-art{width:75vw;right:-24%;top:6rem;opacity:.2}.hero-foot{display:block;max-width:420px}.hero-foot p{margin-bottom:1.1rem}.hero-index{margin-top:4rem}.hero-index span:nth-child(2){display:none}.intro,.limits{grid-template-columns:1fr;gap:1.5rem;padding-top:4rem;padding-bottom:4rem}.intro h2,.limits h2{font-size:3.5rem}.workspace{padding-top:4rem;padding-bottom:4rem}.workspace-head{align-items:flex-start}.workspace-head>p{font-size:9px}.shell{grid-template-columns:1fr}.console{border-right:0}.log{min-height:330px;max-height:55dvh}.rail{display:grid;grid-template-columns:1fr 1fr}.inspector-section:first-child{grid-column:1/-1}.engine-section{grid-column:1/-1}.memory-section{border-right:1px solid var(--ink)}.method{grid-template-columns:1fr;gap:2.5rem;padding-top:4rem;padding-bottom:4rem}.method-head h2{font-size:3.8rem}}@media(max-width:460px){:root{--pad:1rem}.bar nav{gap:.65rem}.bar nav a{font-size:8px}.mode{padding:.35rem .4rem}.hero h1{font-size:19vw}.hero-index{font-size:7px}.workspace-head{display:block}.workspace-head>p{margin-top:.8rem}.turn{grid-template-columns:40px minmax(0,1fr);padding:.9rem}.console-top{padding:0 .8rem}.form{padding:.8rem}.input-hint{display:none}.ctl{align-items:flex-end}.form-actions{margin-left:auto}.rail{grid-template-columns:1fr}.inspector-section:first-child,.engine-section{grid-column:auto}.memory-section{border-right:0}.memory-section canvas{max-width:140px}footer{font-size:7px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.turn{animation:none}}
+
+/* Slope language: short copy, angled marks, and clearer mobile rhythm. */
+.intro,.limits,.method{position:relative}
+.intro:before,.limits:before{content:"";position:absolute;top:0;left:var(--pad);width:clamp(2.5rem,8vw,7rem);height:3px;background:var(--red);transform:translateY(-2px) rotate(-24deg);transform-origin:left center}
+.method-list article{position:relative;padding-left:.2rem}
+.method-list article:before{content:"";position:absolute;left:0;top:0;width:1.8rem;height:2px;background:var(--red);transform:rotate(-24deg);transform-origin:left center}
+.hero-foot p{max-width:260px;font-size:clamp(14px,1.4vw,17px);letter-spacing:-.025em}
+.intro>div:nth-child(2)>p,.limits>div:nth-child(2)>p{max-width:390px;font-size:clamp(14px,1.25vw,16px);line-height:1.55}
+.method-head>p:last-child{max-width:230px}
+.method-list p{max-width:360px;line-height:1.5}
+@media(max-width:760px){
+  .intro,.limits{gap:1rem}
+  .intro h2,.limits h2{font-size:clamp(3rem,12vw,4rem)}
+  .method{gap:1.8rem}
+  .method-head h2{font-size:clamp(3.2rem,13vw,4.2rem)}
+  .method-list article{grid-template-columns:30px minmax(0,1fr) 14px;gap:.65rem;padding:1rem 0}
+  .method-list p{margin:.35rem 0 0}
+  .hero-foot p{max-width:230px}
+}
