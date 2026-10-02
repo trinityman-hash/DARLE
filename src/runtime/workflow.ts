@@ -27,6 +27,15 @@ function validJson(value: unknown, depth = 0, budget = { n: 0 }): value is Json 
   }
   return false;
 }
+function immutableJson(value: Json): Json {
+  if (Array.isArray(value)) return Object.freeze(value.map(immutableJson));
+  if (value !== null && typeof value === 'object') {
+    const copy: Record<string, Json> = {};
+    for (const [key, item] of Object.entries(value)) copy[key] = immutableJson(item);
+    return Object.freeze(copy);
+  }
+  return value;
+}
 export function validateWorkflow(value: unknown): Workflow {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('workflow must be an object');
   const w = value as Record<string, unknown>;
@@ -40,7 +49,7 @@ export function validateWorkflow(value: unknown): Workflow {
     if (typeof s.connector !== 'string' || !NAME.test(s.connector) || typeof s.action !== 'string' || !NAME.test(s.action)) throw new Error('invalid connector or action name');
     if (!s.input || typeof s.input !== 'object' || Array.isArray(s.input) || !validJson(s.input)) throw new Error('step input must be bounded JSON data');
     seen.add(s.id);
-    return { id: s.id, connector: s.connector, action: s.action, input: s.input as Record<string, Json> };
+    return { id: s.id, connector: s.connector, action: s.action, input: immutableJson(s.input as Record<string, Json>) as Record<string, Json> };
   });
   return { version: 1, id: w.id, steps };
 }
@@ -49,7 +58,7 @@ export function validateWorkflow(value: unknown): Workflow {
 export async function executeWorkflow(
   workflow: Workflow,
   registry: ConnectorRegistry,
-  options: { runId: string; signal?: AbortSignal; stepTimeoutMs?: number } 
+  options: { runId: string; signal?: AbortSignal; stepTimeoutMs?: number }
 ): Promise<RunResult> {
   const w = validateWorkflow(workflow), steps: StepResult[] = [];
   const timeout = options.stepTimeoutMs ?? 15_000;
@@ -72,12 +81,12 @@ export async function executeWorkflow(
     if (signal.aborted) onAbort(); else signal.addEventListener('abort', onAbort, { once: true });
     try {
       const result = await Promise.race([
-        action(Object.freeze({ ...step.input }), { workflowId: w.id, runId: options.runId, stepId: step.id, signal: controller.signal }),
+        action(step.input, { workflowId: w.id, runId: options.runId, stepId: step.id, signal: controller.signal }),
         cancelled,
         new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error('step timed out')); }, timeout); })
       ]);
       if (!validJson(result)) throw new Error('connector returned invalid or oversized JSON');
-      steps.push({ stepId: step.id, status: 'succeeded', output: result });
+      steps.push({ stepId: step.id, status: 'succeeded', output: immutableJson(result) });
     } catch (error) {
       steps.push({ stepId: step.id, status: 'failed', error: error instanceof Error ? error.message.slice(0, 300) : 'connector failed' });
       return { workflowId: w.id, runId: options.runId, status: 'failed', steps };
