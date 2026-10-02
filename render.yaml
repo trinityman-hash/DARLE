@@ -1,10 +1,10 @@
 services:
   - type: web
     name: darle
-    runtime: node
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     plan: free
-    buildCommand: npm install --include=dev && npm run build
-    startCommand: node dist/server.js
     healthCheckPath: /healthz
     envVars:
       - key: NODE_VERSION
@@ -15,3 +15,5 @@ services:
         sync: false
       - key: LLM_API_KEY
         sync: false
+      - key: NEEDLE_BASE_URL
+        value: http://127.0.0.1:8765
