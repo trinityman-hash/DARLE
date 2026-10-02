@@ -21,7 +21,7 @@ The repository currently contains a legacy conversational prototype alongside th
 - Sequential fail-closed execution with per-step timeout and cancellation signals.
 - Automated tests, TypeScript checks, bundling, and container build in CI.
 
-This is an early execution foundation, **not yet the complete visual builder, persistent workflow store, connector permission manager, bot runtime, or production security boundary**. In-process action timeouts cannot forcibly stop arbitrary JavaScript; trusted connector handlers must cooperate with cancellation, and untrusted extensions require process or OS-level isolation before they can be enabled.
+This is an early execution foundation, **not yet the complete visual builder, persistent workflow store, connector permission manager, bot runtime, or production security boundary**. In-process action timeouts cannot forcibly stop arbitrary JavaScript; trusted connector handlers must cooperate with cancellation, and untrusted extensions require process or OS-level isolation before they can be enabled. A lightweight container may be offered as an optional isolation backend for supported hosts, with restrictive filesystem, network, process, and resource policies. Containers reduce some risks but are not a hardware-protection guarantee or a substitute for least-privilege permissions; mobile platforms may require a different isolation mechanism.
 
 ## Development sequence
 
