@@ -37,10 +37,10 @@ function startLocal() {
 }
 async function boot() {
   try {
-    const r = await fetch('/api/state?session=' + encodeURIComponent(session), { headers: { accept: 'application/json' }, credentials: 'same-origin' }); if (!r.ok) throw new Error(String(r.status));
+    const r = await fetch('/api/state?session=' + encodeURIComponent(session), { headers: { accept: 'application/json' }, credentials: 'same-origin', signal: AbortSignal.timeout(8000) }); if (!r.ok) throw new Error(String(r.status));
     const d = await r.json(); stats(d.stats); draw(unpack(d.bits)); modeEl.textContent = 'SERVER / REACHABLE'; send.disabled = false;
-    engine.textContent = [d.llm.configured ? `Language model configured: ${d.llm.model} (not live-tested)` : 'Language model not configured', d.needle?.ready ? 'Needle service online · inference unverified' : 'Needle 2 unavailable'].join(' · ');
-  } catch { startLocal(); }
+    engine.textContent = [d.llm.configured ? `Language model configured: ${d.llm.model} (not live-tested)` : 'Memory and calculation available · language model not configured', d.needle?.ready ? 'Needle service online · inference unverified' : 'Needle 2 unavailable'].join(' · ');
+  } catch (e) { startLocal(); add(el('p', 'note', `Server state could not be loaded (${e instanceof Error ? e.message : 'network error'}). Running limited browser-only mode.`)); }
 }
 async function submit() {
   const t = box.value.trim(); if (!t || send.disabled) return; send.disabled = true; user(t); box.value = ''; $('#counter')!.textContent = '0 / 500';
