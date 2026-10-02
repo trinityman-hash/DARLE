@@ -80,3 +80,31 @@ test('rejects non-JSON connector output', async () => {
   assert.equal(result.status, 'failed');
   assert.match(result.steps[0].error ?? '', /invalid or oversized JSON/);
 });
+
+
+test('denies actions with undeclared run grants and permits explicit grants', async () => {
+  let calls = 0;
+  const send = Object.assign(async () => { calls++; return { sent: true }; }, { requiredPermissions: ['network_send'] as const });
+  const actions = new Map([['chat', new Map([['send', send]])]]);
+  const workflow: Workflow = { version: 1, id: 'permissioned', steps: [
+    { id: 'send', connector: 'chat', action: 'send', input: {} }
+  ] };
+  const denied = await executeWorkflow(workflow, actions, { runId: 'run-denied' });
+  assert.equal(denied.status, 'failed');
+  assert.match(denied.steps[0].error ?? '', /permission was not granted/);
+  assert.equal(calls, 0);
+  const allowed = await executeWorkflow(workflow, actions, { runId: 'run-allowed', grants: new Set(['network_send']) });
+  assert.equal(allowed.status, 'succeeded');
+  assert.equal(calls, 1);
+});
+
+test('rejects malformed connector permission declarations', async () => {
+  const action = Object.assign(async () => null, { requiredPermissions: ['Network Send'] });
+  const actions = new Map([['chat', new Map([['send', action]])]]);
+  const workflow: Workflow = { version: 1, id: 'badpermission', steps: [
+    { id: 'send', connector: 'chat', action: 'send', input: {} }
+  ] };
+  const result = await executeWorkflow(workflow, actions, { runId: 'run-badpermission', grants: new Set(['Network Send']) });
+  assert.equal(result.status, 'failed');
+  assert.match(result.steps[0].error ?? '', /declaration is invalid/);
+});
