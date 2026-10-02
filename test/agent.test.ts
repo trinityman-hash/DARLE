@@ -81,3 +81,11 @@ test('an unreachable model degrades gracefully; memory still works', async () =>
 test('without a model it answers from memory and says when it cannot parse', async () => {
   const a = new Agent(seeded(), null); const r = await a.turn('Tell me about Paris'); assert.equal(r.route, 'memory'); assert.match(r.text, /could not parse/);
 });
+test('a hung model is cut off inside the turn budget', async () => {
+  const srv = createServer(() => { /* never answers */ });
+  await new Promise<void>(ok => srv.listen(0, '127.0.0.1', ok));
+  const a = new Agent(seeded(), { base: `http://127.0.0.1:${(srv.address() as AddressInfo).port}/v1`, model: 'x', timeoutMs: 30000 });
+  a.budgetMs = 600; const t0 = Date.now(); const r = await a.turn('Tell me something');
+  srv.closeAllConnections(); srv.close();
+  assert.equal(r.route, 'none'); assert.ok(Date.now() - t0 < 2500, 'returned within the budget');
+});
