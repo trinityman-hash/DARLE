@@ -28,7 +28,7 @@ function validJson(value: unknown, depth = 0, budget = { n: 0 }): value is Json 
   return false;
 }
 function immutableJson(value: Json): Json {
-  if (Array.isArray(value)) return Object.freeze(value.map(immutableJson));
+  if (Array.isArray(value)) return Object.freeze(value.map(immutableJson)) as unknown as Json;
   if (value !== null && typeof value === 'object') {
     const copy: Record<string, Json> = {};
     for (const [key, item] of Object.entries(value)) copy[key] = immutableJson(item);
