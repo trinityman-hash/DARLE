@@ -70,4 +70,4 @@ createServer(async (req, res) => {
     res.writeHead(200, { ...H, 'content-type': TYPES[extname(file)] ?? 'application/octet-stream', 'cache-control': extname(file) === '.html' ? 'no-cache' : 'public, max-age=300', 'content-length': data.length });
     if (req.method === 'HEAD') res.end(); else res.end(data);
   } catch { if (!res.headersSent) res.writeHead(404, { ...H, 'content-type': 'text/plain; charset=utf-8' }).end('not found'); }
-}).listen(PORT, '0.0.0.0', () => console.log(\`darle listening on :\${PORT}, language model \${LLM ? LLM.model : 'not configured'}\`));
+}).listen(PORT, '0.0.0.0', () => console.log(`darle listening on :${PORT}, language model ${LLM ? LLM.model : 'not configured'}`));
