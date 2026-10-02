@@ -18,8 +18,8 @@ const nz = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/
 class Bad extends Error {}
 
 export class Agent {
-  mem: Darle; llm: LlmConfig | null; fetchFn: typeof fetch; history: Msg[] = [];
-  constructor(mem: Darle, llm: LlmConfig | null, fetchFn: typeof fetch = fetch) { this.mem = mem; this.llm = llm; this.fetchFn = fetchFn; }
+  mem: Darle; llm: LlmConfig | null; fetchFn: typeof fetch; needleBase: string | null; history: Msg[] = [];
+  constructor(mem: Darle, llm: LlmConfig | null, fetchFn: typeof fetch = fetch, needleBase: string | null = null) { this.mem = mem; this.llm = llm; this.fetchFn = fetchFn; this.needleBase = needleBase; }
 
   async turn(text: string): Promise<TurnResult> {
     const ex = text.replace(/^(what is|what's|calculate|compute)\s+/i, '').replace(/[?=\s]+$/, '');
