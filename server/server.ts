@@ -7,7 +7,7 @@ import { Agent } from '../src/agent.ts';
 import { llmFromEnv } from '../src/llm.ts';
 
 const PUB = join(process.cwd(), 'public'), PORT = Number(process.env.PORT ?? 8080), MAX = 64, TTL = 20 * 60e3, PER_MIN = 40, ID = /^[\w-]{8,64}$/;
-const LLM = llmFromEnv(process.env);
+const LLM = llmFromEnv(process.env), NEEDLE = process.env.NEEDLE_BASE_URL || null;
 const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.svg': 'image/svg+xml' };
 const H = {
   'content-security-policy': "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'",
@@ -31,7 +31,7 @@ function limited(req: IncomingMessage): boolean {
 function session(id: string): Sess {
   const now = Date.now(); for (const [k, s] of sessions) if (now - s.t > TTL) sessions.delete(k);
   let s = sessions.get(id);
-  if (!s) { if (sessions.size >= MAX) sessions.delete(sessions.keys().next().value!); s = { a: new Agent(seeded(), LLM), t: now, q: Promise.resolve() }; }
+  if (!s) { if (sessions.size >= MAX) sessions.delete(sessions.keys().next().value!); s = { a: new Agent(seeded(), LLM, fetch, NEEDLE), t: now, q: Promise.resolve() }; }
   s.t = now; sessions.delete(id); sessions.set(id, s); return s;
 }
 async function readBody(req: IncomingMessage, res: ServerResponse): Promise<any | null> {
@@ -44,7 +44,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL) {
   if (limited(req)) return json(res, 429, { error: 'too many requests' });
   if (url.pathname === '/api/state' && req.method === 'GET') {
     const id = url.searchParams.get('session') ?? ''; if (!ID.test(id)) return json(res, 400, { error: 'bad session' });
-    const s = session(id); return json(res, 200, { stats: s.a.mem.stats(), bits: pack(s.a.mem.bits('france')), llm: { configured: !!LLM, model: LLM?.model ?? null } });
+    const s = session(id); return json(res, 200, { stats: s.a.mem.stats(), bits: pack(s.a.mem.bits('france')), llm: { configured: !!LLM, model: LLM?.model ?? null }, needle: { configured: !!NEEDLE } });
   }
   if (url.pathname === '/api/chat' && req.method === 'POST') {
     const j = await readBody(req, res); if (j === null) return;
