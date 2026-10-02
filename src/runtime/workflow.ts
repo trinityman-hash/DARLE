@@ -66,9 +66,14 @@ export async function executeWorkflow(
     const abort = () => controller.abort();
     signal.addEventListener('abort', abort, { once: true });
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let rejectAbort: ((reason: Error) => void) | undefined;
+    const cancelled = new Promise<never>((_, reject) => { rejectAbort = reject; });
+    const onAbort = () => { abort(); rejectAbort?.(new Error('run cancelled')); };
+    if (signal.aborted) onAbort(); else signal.addEventListener('abort', onAbort, { once: true });
     try {
       const result = await Promise.race([
         action(Object.freeze({ ...step.input }), { workflowId: w.id, runId: options.runId, stepId: step.id, signal: controller.signal }),
+        cancelled,
         new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error('step timed out')); }, timeout); })
       ]);
       if (!validJson(result)) throw new Error('connector returned invalid or oversized JSON');
@@ -79,6 +84,7 @@ export async function executeWorkflow(
     } finally {
       if (timer) clearTimeout(timer);
       signal.removeEventListener('abort', abort);
+      signal.removeEventListener('abort', onAbort);
     }
   }
   return { workflowId: w.id, runId: options.runId, status: 'succeeded', steps };
