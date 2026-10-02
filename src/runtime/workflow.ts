@@ -10,7 +10,7 @@ export interface RunContext { workflowId: string; runId: string; stepId: string;
 export type Action = ((input: Readonly<Record<string, Json>>, context: RunContext) => Promise<Json>) & { readonly requiredPermissions?: readonly string[] };
 export type ConnectorRegistry = ReadonlyMap<string, ReadonlyMap<string, Action>>;
 export interface StepResult { stepId: string; status: 'succeeded' | 'failed'; output?: Json; error?: string }
-export interface RunResult { workflowId: string; runId: string; status: 'succeeded' | 'failed'; steps: StepResult[] }
+export interface RunResult { workflowId: string; runId: string; status: 'succeeded' | 'failed'; steps: StepResult[] }\nexport interface PermissionGrant { workflowId: string; connector: string; action: string; permission: string }
 
 const ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
 const NAME = /^[a-z][a-z0-9_-]{0,63}$/;
@@ -58,7 +58,7 @@ export function validateWorkflow(value: unknown): Workflow {
 export async function executeWorkflow(
   workflow: Workflow,
   registry: ConnectorRegistry,
-  options: { runId: string; signal?: AbortSignal; stepTimeoutMs?: number; grants?: ReadonlySet<string> }
+  options: { runId: string; signal?: AbortSignal; stepTimeoutMs?: number; grants?: readonly PermissionGrant[] }
 ): Promise<RunResult> {
   const w = validateWorkflow(workflow), steps: StepResult[] = [];
   const timeout = options.stepTimeoutMs ?? 15_000;
