@@ -6,7 +6,7 @@ const wf: Workflow = { version: 1, id: 'sample', steps: [
   { id: 'first', connector: 'core', action: 'echo', input: { message: 'safe' } },
   { id: 'second', connector: 'core', action: 'echo', input: { count: 2 } }
 ] };
-const registry = new Map([['core', new Map([['echo', async input => input as never]])]]);
+const registry = new Map([['core', new Map([['echo', async (input: Readonly<Record<string, import('../src/runtime/workflow.ts').Json>>) => input.message ?? null]])]]);
 
 test('validates data-only workflows and rejects duplicate IDs', () => {
   assert.equal(validateWorkflow(wf).steps.length, 2);
