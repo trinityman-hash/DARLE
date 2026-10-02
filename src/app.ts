@@ -1,10 +1,8 @@
 interface Claim { fact: string; status: 'supported' | 'contradicted' | 'unknown'; proof: string[] }
 interface Turn { text: string; route: 'memory' | 'calc' | 'needle' | 'model' | 'none'; claims: Claim[]; proof: string[]; notes: string[]; tokens: number }
 const $ = <T extends HTMLElement>(s: string) => document.querySelector(s) as T;
-const log = $('#log'), form = $<HTMLFormElement>('#form'), box = $<HTMLTextAreaElement>('#prompt'), send = $<HTMLButtonElement>('#send'), modeEl = $('#mode'), trace = $('#trace'), engine = $('#engine');
+const log = $('#log'), form = $<HTMLFormElement>('#form'), box = $<HTMLTextAreaElement>('#prompt'), send = $<HTMLButtonElement>('#send'), modeEl = $('#mode'), engine = $('#engine');
 const fmt = new Intl.NumberFormat('en');
-const ROUTE = { memory: 'memory', calc: 'exact calculation', needle: 'Needle specialist', model: 'language model', none: 'declined' } as const;
-const LABEL = { supported: 'supported', contradicted: 'conflict', unknown: 'unverified' } as const;
 const el = (tag: string, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = text; return e; };
 const add = (n: HTMLElement) => { $('#empty')?.remove(); log.append(n); log.scrollTop = log.scrollHeight; };
 function stats(s: { dims: number; banks: number; facts: number; bytes: number }) {
@@ -18,23 +16,9 @@ function draw(bits: Uint8Array | null) {
   g.restore(); g.strokeStyle = '#171717'; g.lineWidth = 3; g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 3, 0, Math.PI * 2); g.stroke();
 }
 const unpack = (b64: string): Uint8Array | null => { if (!b64) return null; const raw = atob(b64), o = new Uint8Array(raw.length * 8); for (let j = 0; j < o.length; j++) o[j] = (raw.charCodeAt(j >> 3) >> (j & 7)) & 1; return o; };
-function renderTrace(r: Turn) {
-  trace.replaceChildren();
-  trace.append(el('p', 'kv', 'ROUTE / ' + ROUTE[r.route].toUpperCase() + (r.tokens ? ' · ' + fmt.format(r.tokens) + ' TOKENS' : '')));
-  if (r.claims.length) {
-    const ul = el('ul', 'claims');
-    for (const c of r.claims) { const li = el('li', 'c ' + c.status); li.append(el('span', 'mk'), el('span', 'ct', c.fact), el('span', 'cs', LABEL[c.status])); ul.append(li); }
-    trace.append(ul);
-  }
-  for (const n of r.notes) trace.append(el('p', 'note', n));
-  for (const p of new Set([...r.proof, ...r.claims.flatMap(c => c.proof)])) trace.append(el('div', 'pl', p));
-  if (trace.children.length === 1 && !r.notes.length) trace.append(el('p', 'note', 'No claims were checked for this answer.'));
-}
 function show(r: Turn) {
-  const t = el('article', 'turn darle'), body = el('div', 'body'), meta = el('div', 'meta');
-  meta.append(el('span', 'chip r-' + r.route, ROUTE[r.route]));
-  if (r.claims.length) { const ok = r.claims.filter(c => c.status === 'supported').length, bad = r.claims.filter(c => c.status === 'contradicted').length; meta.append(el('span', 'chip', `${ok}/${r.claims.length} supported${bad ? ` · ${bad} conflict` : ''}`)); }
-  body.append(el('p', 'txt', r.text), meta); t.append(el('span', 'who', 'DARLE'), body); add(t); renderTrace(r);
+  const t = el('article', 'turn darle'), body = el('div', 'body');
+  body.append(el('p', 'txt', r.text)); t.append(el('span', 'who', 'DARLE'), body); add(t);
 }
 function user(text: string) { const t = el('article', 'turn you'), body = el('div', 'body'); t.append(el('span', 'who', 'YOU'), body); body.append(el('p', 'txt', text)); add(t); }
 let session = ''; try { session = sessionStorage.getItem('darle') ?? ''; } catch { /* storage blocked */ }
@@ -54,8 +38,8 @@ function startLocal() {
 async function boot() {
   try {
     const r = await fetch('/api/state?session=' + encodeURIComponent(session), { headers: { accept: 'application/json' }, credentials: 'same-origin' }); if (!r.ok) throw new Error(String(r.status));
-    const d = await r.json(); stats(d.stats); draw(unpack(d.bits)); modeEl.textContent = 'SERVER / CONNECTED'; send.disabled = false;
-    engine.textContent = [d.llm.configured ? `Language: ${d.llm.model}` : '', d.needle?.ready ? 'Needle 2: ready' : ''].filter(Boolean).join(' · ') || 'No model attached. Memory and exact calculation remain available.';
+    const d = await r.json(); stats(d.stats); draw(unpack(d.bits)); modeEl.textContent = 'SERVER / REACHABLE'; send.disabled = false;
+    engine.textContent = [d.llm.configured ? `Language model configured: ${d.llm.model} (not live-tested)` : 'Language model not configured', d.needle?.ready ? 'Needle 2 responding' : 'Needle 2 unavailable'].join(' · ');
   } catch { startLocal(); }
 }
 async function submit() {
@@ -72,7 +56,7 @@ async function submit() {
 form.addEventListener('submit', e => { e.preventDefault(); void submit(); });
 box.addEventListener('input', () => { $('#counter')!.textContent = box.value.length + ' / 500'; });
 box.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit(); } });
-$('#clear')!.addEventListener('click', () => { log.replaceChildren(); trace.replaceChildren(el('p', 'note', 'Nothing inspected yet.')); const empty = el('div', 'empty'); empty.id = 'empty'; empty.append(el('p', '', 'Conversation cleared from this screen. Session memory remains active until it expires or you start a new session.')); log.append(empty); });
+$('#clear')!.addEventListener('click', () => { log.replaceChildren(); const empty = el('div', 'empty'); empty.id = 'empty'; empty.append(el('p', '', 'Conversation cleared from this screen. Session memory remains active until it expires or you start a new session.')); log.append(empty); });
 $('#new-session')!.addEventListener('click', () => { const id = crypto.randomUUID(); try { sessionStorage.setItem('darle', id); } catch { /* session will be regenerated on reload */ } location.reload(); });
 $('#export')!.addEventListener('click', () => { const lines = [...log.querySelectorAll<HTMLElement>('.turn')].map(t => (t.classList.contains('you') ? 'YOU' : 'DARLE') + '\n' + (t.querySelector('.txt')?.textContent ?? '')).join('\n\n'); if (!lines) return; const a = document.createElement('a'), url = URL.createObjectURL(new Blob([lines], { type: 'text/plain;charset=utf-8' })); a.href = url; a.download = 'darle-conversation.txt'; a.click(); URL.revokeObjectURL(url); });
 document.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach(b => b.addEventListener('click', () => { box.value = b.dataset.ex!; $('#counter')!.textContent = box.value.length + ' / 500'; box.focus(); }));
