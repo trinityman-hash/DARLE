@@ -93,7 +93,7 @@ test('denies actions with undeclared run grants and permits explicit grants', as
   assert.equal(denied.status, 'failed');
   assert.match(denied.steps[0].error ?? '', /permission was not granted/);
   assert.equal(calls, 0);
-  const allowed = await executeWorkflow(workflow, actions, { runId: 'run-allowed', grants: new Set(['network_send']) });
+  const allowed = await executeWorkflow(workflow, actions, { runId: 'run-allowed', grants: [{ workflowId: 'permissioned', connector: 'chat', action: 'send', permission: 'network_send' }] });
   assert.equal(allowed.status, 'succeeded');
   assert.equal(calls, 1);
 });
@@ -104,7 +104,27 @@ test('rejects malformed connector permission declarations', async () => {
   const workflow: Workflow = { version: 1, id: 'badpermission', steps: [
     { id: 'send', connector: 'chat', action: 'send', input: {} }
   ] };
-  const result = await executeWorkflow(workflow, actions, { runId: 'run-badpermission', grants: new Set(['Network Send']) });
+  const result = await executeWorkflow(workflow, actions, { runId: 'run-badpermission', grants: [{ workflowId: 'badpermission', connector: 'chat', action: 'send', permission: 'Network Send' }] });
   assert.equal(result.status, 'failed');
   assert.match(result.steps[0].error ?? '', /declaration is invalid/);
+});
+
+
+test('permission grants are scoped to the exact workflow, connector, and action', async () => {
+  let calls = 0;
+  const action = Object.assign(async () => { calls++; return null; }, { requiredPermissions: ['network_send'] as const });
+  const actions = new Map([['chat', new Map([['send', action]])]]);
+  const workflow: Workflow = { version: 1, id: 'scoped', steps: [
+    { id: 'send', connector: 'chat', action: 'send', input: {} }
+  ] };
+  const mismatched = await executeWorkflow(workflow, actions, { runId: 'scope-1', grants: [
+    { workflowId: 'other', connector: 'chat', action: 'send', permission: 'network_send' }
+  ] });
+  assert.equal(mismatched.status, 'failed');
+  assert.equal(calls, 0);
+  const matched = await executeWorkflow(workflow, actions, { runId: 'scope-2', grants: [
+    { workflowId: 'scoped', connector: 'chat', action: 'send', permission: 'network_send' }
+  ] });
+  assert.equal(matched.status, 'succeeded');
+  assert.equal(calls, 1);
 });
