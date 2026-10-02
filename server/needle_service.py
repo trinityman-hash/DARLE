@@ -35,6 +35,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(413, {"error": "request too large"})
                 return
             body = json.loads(self.rfile.read(length))
+            if not isinstance(body, dict):
+                self.send_json(400, {"error": "invalid request"})
+                return
             query, schema = body.get("query"), body.get("schema")
             if not isinstance(query, str) or not query.strip() or len(query) > 500:
                 self.send_json(400, {"error": "invalid query"})
@@ -54,6 +57,8 @@ class Handler(BaseHTTPRequestHandler):
                 result = agent.complete(query, max_new_tokens=160)
             calls = result.get("function_calls") or []
             turn = calls[0].get("arguments") if result.get("type") == "call" and calls and calls[0].get("name") == "darle_structured_response" else None
+            if not isinstance(turn, dict):
+                turn = None
             self.send_json(200, {"turn": turn, "confidence": result.get("confidence")})
         except (ValueError, TypeError, KeyError):
             self.send_json(400, {"error": "invalid request"})
@@ -66,6 +71,6 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     # Import once at boot so the platform engine is fetched before requests arrive.
     import needle
-    needle.Needle(tools=[])
+    needle.Needle(tools=[{"name": "darle_warmup", "description": "No-op schema used only to initialize the inference engine.", "parameters": {"type": "object", "properties": {}, "required": []}}])
     print("Needle 2 adapter ready", flush=True)
     HTTPServer((HOST, PORT), Handler).serve_forever()
