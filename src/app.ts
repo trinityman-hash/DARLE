@@ -55,7 +55,7 @@ async function boot() {
   try {
     const r = await fetch('/api/state?session=' + encodeURIComponent(session), { headers: { accept: 'application/json' }, credentials: 'same-origin' }); if (!r.ok) throw new Error(String(r.status));
     const d = await r.json(); stats(d.stats); draw(unpack(d.bits)); modeEl.textContent = 'SERVER / CONNECTED'; send.disabled = false;
-    engine.textContent = [d.llm.configured ? `Language: ${d.llm.model}` : '', d.needle?.configured ? 'Needle 2: local specialist' : ''].filter(Boolean).join(' · ') || 'No model attached. Memory and exact calculation remain available.';
+    engine.textContent = [d.llm.configured ? `Language: ${d.llm.model}` : '', d.needle?.ready ? 'Needle 2: ready' : ''].filter(Boolean).join(' · ') || 'No model attached. Memory and exact calculation remain available.';
   } catch { startLocal(); }
 }
 async function submit() {
