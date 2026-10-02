@@ -2,7 +2,9 @@ FROM node:22-bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    NEEDLE_TELEMETRY=0 \
+    NEEDLE_STRICT_VALIDATE=1
 WORKDIR /app
 
 RUN apt-get update \
@@ -13,7 +15,7 @@ COPY package.json ./
 RUN npm install --include=dev
 
 COPY . .
-RUN pip3 install --break-system-packages cactus-needle==2.0.11 \
+RUN pip3 install --break-system-packages cactus-needle==2.0.8 \
  && python3 -c "import needle" \
  && npm run build
 
